@@ -8,11 +8,11 @@
 // __device__ Functions
 
 __device__ int GPU_globalindex(){
-        return  blockIdx.z * gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x + 
-                blockIdx.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x + 
-                blockIdx.x * blockDim.z * blockDim.y * blockDim.x + 
+        return  blockIdx.z * gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
+                blockIdx.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
+                blockIdx.x * blockDim.z * blockDim.y * blockDim.x +
                 threadIdx.z * blockDim.y * blockDim.x +
-                threadIdx.y * blockDim.x + 
+                threadIdx.y * blockDim.x +
                 threadIdx.x;
 }
 
@@ -32,7 +32,7 @@ __device__ int GPU_globalindex(){
 //         }
 // }
 
-__global__ void GPU_hashmap(glm::vec3 *a, glm::vec3 *b, glm::vec3 *c, int n) {
+__global__ void GPU_hashmap(glm::vec3 *a, glm::vec3 *b, float *c, int n) {
         int i = GPU_globalindex();
         if(i < n)
         {
@@ -65,7 +65,7 @@ __global__ void GPU_hashmap(glm::vec3 *a, glm::vec3 *b, glm::vec3 *c, int n) {
 //         {
 //                 i *= c;
 //                 int grey_value = 0;
-                
+
 //                 for(int j=0; j<c; j++)
 //                         grey_value += a[i+j];
 //                 grey_value /= c;
@@ -88,7 +88,7 @@ __global__ void GPU_hashmap(glm::vec3 *a, glm::vec3 *b, glm::vec3 *c, int n) {
 //         size_t size = n * sizeof(glm::vec3);
 //         dim3 grid(n,1,1);           // Max 2147483647 , 65535, 65535 blocks
 //         dim3 block(1,1,1);          // Max 1024 threads per block
-        
+
 //         cudaMalloc(&d_a, size);
 //         cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
 //         GPU_hashmap<<<grid,block>>> (d_a, n);
@@ -102,7 +102,7 @@ void update(glm::vec3 *a, glm::vec3 *b, float *c, int n) {
         float *d_c;
 
         size_t size = n * sizeof(glm::vec3);
-        
+
         cudaMalloc(&d_a, size);
         cudaMalloc(&d_b, size);
         cudaMalloc(&d_c, n * sizeof(float));
@@ -114,11 +114,11 @@ void update(glm::vec3 *a, glm::vec3 *b, float *c, int n) {
         dim3 grid(n,1,1);           // Max 2147483647 , 65535, 65535 blocks
         dim3 block(1,1,1);          // Max 1024 threads per block
         GPU_hashmap<<<grid,block>>> (d_a, d_b, d_c, n);
-        
+
         cudaMemcpy(a, d_a, size, cudaMemcpyDeviceToHost);
         cudaMemcpy(b, d_b, size, cudaMemcpyDeviceToHost);
         cudaMemcpy(c, d_c, n * sizeof(float), cudaMemcpyDeviceToHost);
-        
+
         cudaFree(d_a);
         cudaFree(d_b);
         cudaFree(d_c);
