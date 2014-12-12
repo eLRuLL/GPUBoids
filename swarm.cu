@@ -1,4 +1,5 @@
 #define GLM_FORCE_RADIANS
+#define FLOCKSIZE 10
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
@@ -32,23 +33,44 @@ __device__ int GPU_globalindex(){
 //         }
 // }
 
+typedef struct
+{
+  float x, y, z;
+} point;
+
+__device__ double distance(glm::vec3* a, glm::vec3* b){
+  return sqrt( pow(a->x - b->x,2) + pow(a->y - b->y, 2) + pow(a->z - b->z, 2));
+}
+
 __global__ void GPU_hashmap(glm::vec3 *a, glm::vec3 *b, float *c, int n) {
-        int i = GPU_globalindex();
-        if(i < n)
+        int index = GPU_globalindex();
+        if(index < n)
         {
+
+
+          //////////////////////////////////////////////////////////////////////////////////////////
+          ////////// QUE ESTA ENTRANDO EN EL `a`, `b`? la "traslacion" solamente, o la `posición`?
+          ////////// a es Direccion, b es posicion, esa era la idea, cambiale los nombres si gustas, c era 'angulo'
+          //////////////////////////////////////////////////////////////////////////////////////////
+
+
+
                 // a[i].x = int(a[i].x)+9;
                 // a[i].y = int(a[i].y)+9;
                 // a[i].z = int(a[i].z)+9;
+                int i;
+                int cur_i = 0;
+                glm::vec3* points = new glm::vec3[n];
 
-                a[i].x *= 1.05;
-                a[i].y *= 1.05;
-                a[i].z *= 1.05;
+                for(i=0;i<n;++i){
+                  if(i != index)
+                    if(distance(b[index], b[i]) < FLOCKSIZE)
+                      points[cur_i] = b[i];
+                      cur_i++;
+                }
 
-                b[i].x *= 1.05;
-                b[i].y *= 1.05;
-                b[i].z *= 1.05;
-
-                c[i] *= 1.05;
+                for(i=0;i<cur_i;++i){
+                }
         }
 }
 
