@@ -5,4 +5,4 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 
-void update(glm::vec3*, glm::vec3*, float*, int);
+void update(glm::vec3*, glm::vec3*, float*, int, float);
