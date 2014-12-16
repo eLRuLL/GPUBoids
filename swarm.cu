@@ -10,40 +10,45 @@
 
 #include "main.h"
 
-const float FLOCKSIZE = 2.0;
+const float FLOCKSIZE = 1.0;
 const float epsilon = 1.0e-4;
 
 // __device__ Functions
 
 __device__ int GPU_globalindex(){
-        return  blockIdx.z * gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x + 
-                blockIdx.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x + 
-                blockIdx.x * blockDim.z * blockDim.y * blockDim.x + 
+        return  blockIdx.z * gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
+                blockIdx.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
+                blockIdx.x * blockDim.z * blockDim.y * blockDim.x +
                 threadIdx.z * blockDim.y * blockDim.x +
-                threadIdx.y * blockDim.x + 
+                threadIdx.y * blockDim.x +
                 threadIdx.x;
+}
+
+__device__ void closest_neighbors(glm::vec3*& points, int& n_points, int global_index, int total_number, glm::vec3 *c){
+  int j;
+  n_points = 0;
+  for(j=0;j<total_number;++j){
+    if(j != global_index){
+      if(glm::distance(c[j], c[global_index]) < FLOCKSIZE){
+        points[n_points] = c[j];
+        n_points++;
+      }
+    }
+  }
 }
 
 // __global__ Functions
 
-__global__ void GPU_Repel(glm::vec3 *dj, glm::vec3 *c, int n){
+__global__ void GPU_update_vector(glm::vec3 *dj, glm::vec3 *c, int n){
         int i = GPU_globalindex();
         if(i < n)
         {
+                int n_points = 0;
+                glm::vec3* points = new glm::vec3[n];
+                closest_neighbors(points, n_points, i, n, c);
 
                 int j;
-                int cur_j = 0;
-                glm::vec3* points = new glm::vec3[n];
-
-                for(j=0;j<n;++j){
-                  if(j != i)
-                    if(glm::distance(c[j], c[i]) < FLOCKSIZE){
-                      points[cur_j] = c[j];
-                      cur_j++;
-                    }
-                }
-
-                for(j=0;j<cur_j;++j)
+                for(j=0;j<n_points;++j)
                     dj[i] += glm::normalize(points[j] - c[i])*(-1.0f);
 
                 delete[] points;
@@ -88,7 +93,7 @@ __global__ void GPU_Update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj
 }
 
 void update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj, glm::vec3 *c, glm::vec3 *raxis, float *w, int n, float cT) {
-        
+
         glm::mat4 *d_modelMatrices;
         glm::vec3 *d_d, *d_dj, *d_c, *d_raxis;
         float *d_w;
@@ -96,7 +101,7 @@ void update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj, glm::vec3 *c,
         size_t m4size = n * sizeof(glm::mat4);
         size_t v3size = n * sizeof(glm::vec3);
         size_t fsize = n * sizeof(float);
-        
+
         cudaMalloc(&d_modelMatrices, m4size);
         cudaMalloc(&d_d, v3size);
         cudaMalloc(&d_dj, v3size);
@@ -113,16 +118,16 @@ void update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj, glm::vec3 *c,
 
         dim3 grid(n,1,1);           // Max 2147483647 , 65535, 65535 blocks
         dim3 block(1,1,1);          // Max 1024 threads per block
-        GPU_Repel<<<grid,block>>> (d_dj, d_c,n);
+        GPU_update_vector<<<grid,block>>> (d_dj, d_c,n);
         GPU_Update<<<grid,block>>> (d_modelMatrices, d_d, d_dj, d_c, d_raxis, d_w, n, cT);
-        
+
         cudaMemcpy(modelMatrices, d_modelMatrices, m4size, cudaMemcpyDeviceToHost);
         cudaMemcpy(d, d_d, v3size, cudaMemcpyDeviceToHost);
         cudaMemcpy(dj, d_dj, v3size, cudaMemcpyDeviceToHost);
         cudaMemcpy(c, d_c, v3size, cudaMemcpyDeviceToHost);
         cudaMemcpy(raxis, d_raxis, v3size, cudaMemcpyDeviceToHost);
         cudaMemcpy(w, d_w, fsize, cudaMemcpyDeviceToHost);
-        
+
         cudaFree(d_modelMatrices);
         cudaFree(d_d);
         cudaFree(d_dj);
