@@ -1,125 +1,136 @@
 #define GLM_FORCE_RADIANS
+// #define FLOCKSIZE 10
+// #define MIN_COLLISON_AVOIDANCE 10
+#include <iostream>
+#include <stdio.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 
 #include "main.h"
 
+const float FLOCKSIZE = 3.0;
+const float MIN_COLLISON_AVOIDANCE = 3.0;
+const float epsilon = 1.0e-4;
+
 // __device__ Functions
 
 __device__ int GPU_globalindex(){
-        return  blockIdx.z * gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
-                blockIdx.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
-                blockIdx.x * blockDim.z * blockDim.y * blockDim.x +
+        return  blockIdx.z * gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x + 
+                blockIdx.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x + 
+                blockIdx.x * blockDim.z * blockDim.y * blockDim.x + 
                 threadIdx.z * blockDim.y * blockDim.x +
-                threadIdx.y * blockDim.x +
+                threadIdx.y * blockDim.x + 
                 threadIdx.x;
 }
 
-// _global_ Functions
+// __global__ Functions
 
-// __global__ void GPU_hashmap(glm::vec3 *a, int n) {
-//         int i = GPU_globalindex();
-//         if(i < n)
-//         {
-//                 // a[i].x = int(a[i].x)+9;
-//                 // a[i].y = int(a[i].y)+9;
-//                 // a[i].z = int(a[i].z)+9;
-
-//                 a[i].x *= 1.05;
-//                 a[i].y *= 1.05;
-//                 a[i].z *= 1.05;
-//         }
-// }
-
-__global__ void GPU_hashmap(glm::vec3 *a, glm::vec3 *b, float *c, int n) {
+__global__ void GPU_Repel(glm::vec3 *dj, glm::vec3 *c, int n){
         int i = GPU_globalindex();
         if(i < n)
         {
-                // a[i].x = int(a[i].x)+9;
-                // a[i].y = int(a[i].y)+9;
-                // a[i].z = int(a[i].z)+9;
 
-                a[i].x *= 1.05;
-                a[i].y *= 1.05;
-                a[i].z *= 1.05;
+                int j;
+                int cur_j = 0;
+                glm::vec3* points = new glm::vec3[n];
 
-                b[i].x *= 1.05;
-                b[i].y *= 1.05;
-                b[i].z *= 1.05;
+                for(j=0;j<n;++j){
+                  if(j != i)
+                    if(glm::distance(c[j], c[i]) < FLOCKSIZE){
+                      points[cur_j] = c[j];
+                      cur_j++;
+                    }
+                }
 
-                c[i] *= 1.05;
+                for(j=0;j<cur_j;++j){
+                  float dist = glm::distance(c[i], points[j]);
+                  if(dist < MIN_COLLISON_AVOIDANCE){
+                    dj[i] += glm::normalize(points[j] - c[i])*(-1.0f);
+                    
+                  }
+                }
+                delete[] points;
         }
 }
 
-// __global__ void GPU_inverse(float *a, int n) {
-//         int i = GPU_globalindex();
-//         if(i < n)
-//                 a[i] = 255-a[i];
-// }
+__global__ void GPU_Update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj, glm::vec3 *c, glm::vec3 *raxis, float *w, int n, float cT) {
+        int i = GPU_globalindex();
+        if(i < n)
+        {
 
-// __global__ void GPU_grayscale(pix_t *a, pix_t *b, int n, int c) {
-//         int i = GPU_globalindex();
+                float theta = 0.0;
+                glm::vec3 cr(0,0,0);
+                if(glm::length(d[i]-dj[i]) > epsilon)
+                {
+                        theta = glm::acos(glm::dot(glm::normalize(d[i]),glm::normalize(dj[i])));
+                        cr = glm::normalize(glm::cross(d[i],dj[i]));
+                }
 
-//         if(i < n)
-//         {
-//                 i *= c;
-//                 int grey_value = 0;
+                if(glm::length(raxis[i]) > epsilon)
+                {
+                        modelMatrices[i] = glm::rotate(modelMatrices[i], -w[i], raxis[i]);
+                }
+                modelMatrices[i] = glm::translate(modelMatrices[i],dj[i]*0.0125f);               // Falta Delta, reemp. por 0.0125
+                if(glm::length(raxis[i]) > epsilon)
+                {
+                        modelMatrices[i] = glm::rotate(modelMatrices[i], w[i], raxis[i]);
+                }
 
-//                 for(int j=0; j<c; j++)
-//                         grey_value += a[i+j];
-//                 grey_value /= c;
 
-//                 for(int j=0; j<c; j++)
-//                         b[i+j] = grey_value;
-//         }
-// }
+                if(glm::length(cr) > epsilon)
+                {
+                        modelMatrices[i] = glm::rotate(modelMatrices[i], theta, cr);
+                        raxis[i] = glm::normalize(glm::cross(glm::vec3(0.0,0.0,0.25),dj[i]));
+                        w[i] = glm::acos(glm::dot(glm::normalize(dj[i]),glm::normalize(glm::vec3(0.0,0.0,0.25))));;
+                }
 
-// __global__ void GPU_binarize(pix_t *a, int n, pix_t thresh) {
-//         int i = GPU_globalindex();
-//         if(i < n)
-//                 a[i] = (a[i] >= thresh)*255;
-// }
+                d[i] = dj[i];
+                c[i] += d[i]*0.0125f;
 
-// main functions
+        }
+}
 
-// void update(glm::vec3 *a, int n) {
-//         glm::vec3 *d_a;
-//         size_t size = n * sizeof(glm::vec3);
-//         dim3 grid(n,1,1);           // Max 2147483647 , 65535, 65535 blocks
-//         dim3 block(1,1,1);          // Max 1024 threads per block
+void update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj, glm::vec3 *c, glm::vec3 *raxis, float *w, int n, float cT) {
+        
+        glm::mat4 *d_modelMatrices;
+        glm::vec3 *d_d, *d_dj, *d_c, *d_raxis;
+        float *d_w;
 
-//         cudaMalloc(&d_a, size);
-//         cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
-//         GPU_hashmap<<<grid,block>>> (d_a, n);
-//         cudaMemcpy(a, d_a, size, cudaMemcpyDeviceToHost);
-//         cudaFree(d_a);
-// }
+        size_t m4size = n * sizeof(glm::mat4);
+        size_t v3size = n * sizeof(glm::vec3);
+        size_t fsize = n * sizeof(float);
+        
+        cudaMalloc(&d_modelMatrices, m4size);
+        cudaMalloc(&d_d, v3size);
+        cudaMalloc(&d_dj, v3size);
+        cudaMalloc(&d_c, v3size);
+        cudaMalloc(&d_raxis, v3size);
+        cudaMalloc(&d_w, fsize);
 
-void update(glm::vec3 *a, glm::vec3 *b, float *c, int n) {
-        glm::vec3 *d_a;
-        glm::vec3 *d_b;
-        float *d_c;
-
-        size_t size = n * sizeof(glm::vec3);
-
-        cudaMalloc(&d_a, size);
-        cudaMalloc(&d_b, size);
-        cudaMalloc(&d_c, n * sizeof(float));
-
-        cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
-        cudaMemcpy(d_b, b, size, cudaMemcpyHostToDevice);
-        cudaMemcpy(d_c, c, n * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_modelMatrices, modelMatrices, m4size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_d, d, v3size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_dj, dj, v3size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_c, c, v3size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_raxis, raxis, v3size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_w, w, fsize, cudaMemcpyHostToDevice);
 
         dim3 grid(n,1,1);           // Max 2147483647 , 65535, 65535 blocks
         dim3 block(1,1,1);          // Max 1024 threads per block
-        GPU_hashmap<<<grid,block>>> (d_a, d_b, d_c, n);
-
-        cudaMemcpy(a, d_a, size, cudaMemcpyDeviceToHost);
-        cudaMemcpy(b, d_b, size, cudaMemcpyDeviceToHost);
-        cudaMemcpy(c, d_c, n * sizeof(float), cudaMemcpyDeviceToHost);
-
-        cudaFree(d_a);
-        cudaFree(d_b);
+        GPU_Repel<<<grid,block>>> (d_dj, d_c,n);
+        GPU_Update<<<grid,block>>> (d_modelMatrices, d_d, d_dj, d_c, d_raxis, d_w, n, cT);
+        
+        cudaMemcpy(modelMatrices, d_modelMatrices, m4size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(d, d_d, v3size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(dj, d_dj, v3size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(c, d_c, v3size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(raxis, d_raxis, v3size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(w, d_w, fsize, cudaMemcpyDeviceToHost);
+        
+        cudaFree(d_modelMatrices);
+        cudaFree(d_d);
+        cudaFree(d_dj);
         cudaFree(d_c);
+        cudaFree(d_raxis);
+        cudaFree(d_w);
 }

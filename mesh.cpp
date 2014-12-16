@@ -18,7 +18,8 @@ Mesh::Mesh(const char* filenameFragment, const char* filenameVertex)
 	// Get a handle for our "MVP" uniform
 	matrixID = glGetUniformLocation(programID, "MVP");
 
-	modelMatrix = glm::mat4(1);
+	// modelMatrix = glm::mat4(1);
+	// modelMatrix = new glm::mat4(1);
 
 	// Get a handle for our "LightPosition" uniform
 	glUseProgram(programID);
@@ -33,6 +34,7 @@ Mesh::~Mesh()
 	glDeleteProgram(programID);
 	glDeleteTextures(1, &texture);
 	glDeleteVertexArrays(1, &vertexArrayID);
+	// delete modelMatrix;
 }
 
 
@@ -122,11 +124,20 @@ GLuint Mesh::getProgramID()
 
 
 
+// glm::mat4 Mesh::getModelMatrix()
+// {
+// 	return modelMatrix;
+// }
+// void Mesh::setModelMatrix(glm::mat4 newModelMatrix)
+// {
+// 	modelMatrix = newModelMatrix;
+// }
+
 glm::mat4 Mesh::getModelMatrix()
 {
-	return modelMatrix;
+	return *modelMatrix;
 }
-void Mesh::setModelMatrix(glm::mat4 newModelMatrix)
+void Mesh::setModelMatrix(glm::mat4 *newModelMatrix)
 {
 	modelMatrix = newModelMatrix;
 }

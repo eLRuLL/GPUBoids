@@ -26,10 +26,30 @@ using namespace glm;
 
 GLFWwindow* window;
 
+
+
+// class boid
+// {
+// public:
+// 	vector<vec3> c(n,vec3(0.0,0.0,0.0));
+// 	vector<vec3> d(n,vec3(0.0,0.0,0.25));
+// 	vector<vec3> dj(d);
+// 	vector<float> w(n,0.0);
+// 	vector<vec3> raxis(n,vec3(0,1,0));
+
+// 	random_device rd;
+// 	mt19937 gen(rd());
+// 	uniform_real_distribution<float> fd(-10.0,10.0);
+
+// };
+
+
 int main( int argc, char *argv[])
 {
 
 	int n = stoi(argv[1]);
+	int p = stoi(argv[2]);
+	const float epsilon = 1.0e-4;
 
 	// Initialise GLFW
 	if (!glfwInit())
@@ -45,9 +65,9 @@ int main( int argc, char *argv[])
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	int width = 1280;
-	int height = 1024;
-	window = glfwCreateWindow(width, height, "Solar System", NULL/*glfwGetPrimaryMonitor()*/, NULL);
+	int width = 1280;	//1280 - 1920
+	int height = 1024;	//1024 - 1080
+	window = glfwCreateWindow(width, height, "Fishschool Collective Behavior Simulation", NULL/*glfwGetPrimaryMonitor()*/, NULL);
 	if (window == NULL){
 		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
 		glfwTerminate();
@@ -68,7 +88,7 @@ int main( int argc, char *argv[])
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 	// Dark blue background
-	glClearColor(0.0f, 0.0f, 0.1f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	// glClearColor(1.0f*88/255, 1.0f*129/255, 1.0f*243/255, 0.0f);
 
 	// Enable depth test
@@ -80,41 +100,74 @@ int main( int argc, char *argv[])
 
 	vec3 lightPos = vec3(0, 0, 0);
 
-
-	Mesh fish("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
-	fish.loadMesh("data/models/trout4.obj");
-	fish.setColorTexture("data/textures/colorMoon.png", "myTextureSampler");
-	vector<Mesh> swarm(n,fish);
-	vector<vec3> c(n,vec3(0.0,0.0,0.0));
-	vector<vec3> d(n,vec3(0.0,0.0,0.25));
-	vector<vec3> dj(d);
-	vector<float> w(n,0.0);
-
 	random_device rd;
 	mt19937 gen(rd());
 	uniform_real_distribution<float> fd(-10.0,10.0);
 
+	Mesh fish("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
+	fish.loadMesh("data/models/trout.obj");
+	fish.setColorTexture("data/textures/jade.jpg", "myTextureSampler");
+	vector<Mesh> swarm(n,fish);
+	vector<mat4> modelMatrices(n,glm::mat4(1));
+	vector<vec3> c(n,vec3(0.0,0.0,0.0));
+	vector<vec3> d(n,vec3(0.0,0.0,0.25));
+	vector<vec3> dj(d);
+	vector<float> w(n,0.0);
+	vector<vec3> raxis(n,vec3(0,1,0));
+
 	for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
 	{
 		int i = it-swarm.begin();
-		c[i] = vec3(fd(gen),fd(gen),fd(gen));
-
-		it->setModelMatrix(translate(it->getModelMatrix(), c[i] ));
+		it->setModelMatrix(&modelMatrices[i]);
 	}
 
-	cout << "READY!!!" << endl;
+	for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
+	{
+		int i = it-swarm.begin();
+		float cx, cy, cz;
+		do
+		{
+			cx = fd(gen);
+			cy = fd(gen);
+			cz = fd(gen);
+		}
+		while((cx*cx + cy*cy + cz*cz > 10*10) || (cx*cx + cy*cy + cz*cz < 9.5*9.5));
+		c[i] = vec3(cx,cy,cz);
+		modelMatrices[i] = translate(modelMatrices[i], c[i]);
+	}
 
-	float speed = 10.0f;
-	mat4 ViewMatrix = mat4(1.0f);
-	ViewMatrix = translate(ViewMatrix, vec3(0.0f,0.0f,-5.0f));
-	ViewMatrix = rotate(ViewMatrix, float(M_PI/2), vec3(1,0,0));
+	// Mesh shark("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
+	// shark.loadMesh("data/models/shark.obj");
+	// shark.setColorTexture("data/textures/sapphire.jpg", "myTextureSampler");
+	// vector<Mesh> predators(p,shark);
+
+/*	for(vector<Mesh>::iterator it = predators.begin(); it != predators.end(); it++)
+	{
+		int i = it-predators.begin();
+		float cx, cy, cz;
+		do
+		{
+			cx = fd(gen);
+			cy = fd(gen);
+			cz = fd(gen);
+		}
+		while((cx*cx + cy*cy + cz*cz > 10*10));
+		vec3 cs(cx,cy,cz);
+		vec3 cs(0,0,0);
+
+		it->setModelMatrix(translate(it->getModelMatrix(), cs));
+	}*/
+
+	// mat4 ViewMatrix = translate(mat4(1.0f), vec3(0.0f,0.0f,-10.0f));
+	// mat4 ViewMatrix2 = rotate(ViewMatrix, float(M_PI/2), vec3(1,0,0));
+	// mat4 ViewMatrix3 = rotate(ViewMatrix, float(-M_PI/2), vec3(0,1,0));
 
 	double lastTime = glfwGetTime();
+
 	do
 	{
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		// glViewport (320, 28, 1280, 1024);
 
 		// time between two frames
 		double currentTime = glfwGetTime();
@@ -124,32 +177,33 @@ int main( int argc, char *argv[])
 		// Compute the MVP matrix from keyboard and mouse input
 		computeMatricesFromInputs();
 		mat4 ProjectionMatrix = getProjectionMatrix();
-		// mat4 ViewMatrix = getViewMatrix();
+		mat4 ViewMatrix = getViewMatrix();							
 
-		update(&dj[0],&c[0],&w[0], n);
+		update(&modelMatrices[0],&d[0],&dj[0],&c[0],&raxis[0],&w[0],n, float(currentTime));
 
 		for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
 		{
-			int i = it-swarm.begin();
-
-			// cout << "d[" << i << "] = " << d[i].x << "\t;" << d[i].y << "\t;" << d[i].z << endl;
-			// cout << "c[" << i << "] = " << c[i].x << "\t;" << c[i].y << "\t;" << c[i].z << endl;
-			// cout << endl;
-
-			// vec3 dj(0.25,0.0,0.25*(currentTime>1.0));
-
-
-
-			float theta = acos(dot(normalize(d[i]),normalize(dj[i])));
-			d[i] = dj[i];
-
-			it->setModelMatrix(translate(it->getModelMatrix(), d[i]*float(delta)));
-			it->setModelMatrix(rotate(it->getModelMatrix(), theta*float(delta), vec3(0, 1, 0)));		// Mejorar el Giro
-
-			c[i] += d[i]*float(delta);
 			mat4 MVP = ProjectionMatrix * ViewMatrix * it->getModelMatrix();
 			it->draw(MVP);
 		}
+
+		// for(vector<Mesh>::iterator it = predators.begin(); it != predators.end(); it++)
+		// {
+		// 	// it->setModelMatrix(translate(it->getModelMatrix(), vec3(sin(currentTime),0.0,cos(currentTime))*float(delta)));
+		// 	it->setModelMatrix(rotate(it->getModelMatrix(), 0.1f, vec3(0,1,0)));
+			
+		// 	glViewport (width/4, 0, width/2, height/2);
+		// 	mat4 MVP = ProjectionMatrix * ViewMatrix * it->getModelMatrix();
+		// 	it->draw(MVP);
+
+		// 	glViewport (width/4, height/2, width/2, height/2);
+		// 	MVP = ProjectionMatrix * ViewMatrix2 * it->getModelMatrix();
+		// 	it->draw(MVP);
+
+		// 	glViewport (width/2, 0, width/2, height/2);
+		// 	MVP = ProjectionMatrix * ViewMatrix3 * it->getModelMatrix();
+		// 	it->draw(MVP);
+		// }
 
 		// Swap buffers
 		glfwSwapBuffers(window);
