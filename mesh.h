@@ -12,7 +12,8 @@ public:
 	GLuint getProgramID();
 	void draw(glm::mat4 MVP);
 	glm::mat4 getModelMatrix();
-	void setModelMatrix(glm::mat4 newModelMatrix);
+	// void setModelMatrix(glm::mat4 newModelMatrix);
+	void setModelMatrix(glm::mat4 *newModelMatrix);
 	void setColorTexture(const char* filename, const char* name);
 	void loadMesh(const char* filename);
 private:
@@ -24,7 +25,8 @@ private:
 	GLuint vertexbuffer;
 	GLuint uvbuffer;
 	GLuint normalbuffer;
-	glm::mat4 modelMatrix;
+	// glm::mat4 modelMatrix;
+	glm::mat4 *modelMatrix;
 	// Read our .obj file
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
