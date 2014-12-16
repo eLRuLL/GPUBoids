@@ -133,10 +133,7 @@ int main( int argc, char *argv[])
 		}
 		while((cx*cx + cy*cy + cz*cz > 10*10) || (cx*cx + cy*cy + cz*cz < 9.5*9.5));
 		c[i] = vec3(cx,cy,cz);
-		// c[i] = vec3(0.4,0,0);
 		modelMatrices[i] = translate(modelMatrices[i], c[i]);
-		// it->setModelMatrix(modelMatrices[i]);
-		// it->setModelMatrix(rotate(it->getModelMatrix(), float(M_PI/2), cross(vec3(0.0,0.0,0.25),vec3(0.05,0.0439671,0.0))));
 	}
 
 	// Mesh shark("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
@@ -161,22 +158,16 @@ int main( int argc, char *argv[])
 		it->setModelMatrix(translate(it->getModelMatrix(), cs));
 	}*/
 
-
-
-	float speed = 10.0f;
-	mat4 ViewMatrix = translate(mat4(1.0f), vec3(0.0f,0.0f,-1.0f));
-	// ViewMatrix = rotate(ViewMatrix, float(M_PI/2), vec3(1,0,0));
-	mat4 ViewMatrix2 = rotate(ViewMatrix, float(M_PI/2), vec3(1,0,0));
-	mat4 ViewMatrix3 = rotate(ViewMatrix, float(-M_PI/2), vec3(0,1,0));
+	// mat4 ViewMatrix = translate(mat4(1.0f), vec3(0.0f,0.0f,-10.0f));
+	// mat4 ViewMatrix2 = rotate(ViewMatrix, float(M_PI/2), vec3(1,0,0));
+	// mat4 ViewMatrix3 = rotate(ViewMatrix, float(-M_PI/2), vec3(0,1,0));
 
 	double lastTime = glfwGetTime();
-
 
 	do
 	{
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		// glViewport (0, 0, 1280, 1024);
 
 		// time between two frames
 		double currentTime = glfwGetTime();
@@ -192,17 +183,8 @@ int main( int argc, char *argv[])
 
 		for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
 		{
-			// glViewport (0, 0, width/2, height/2);
 			mat4 MVP = ProjectionMatrix * ViewMatrix * it->getModelMatrix();
 			it->draw(MVP);
-
-			// glViewport (0, height/2, width/2, height/2);
-			// MVP = ProjectionMatrix * ViewMatrix2 * it->getModelMatrix();
-			// it->draw(MVP);
-
-			// glViewport (width/2, 0, width/2, height/2);
-			// MVP = ProjectionMatrix * ViewMatrix3 * it->getModelMatrix();
-			// it->draw(MVP);
 		}
 
 		// for(vector<Mesh>::iterator it = predators.begin(); it != predators.end(); it++)
