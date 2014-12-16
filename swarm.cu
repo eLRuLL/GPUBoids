@@ -10,7 +10,9 @@
 
 #include "main.h"
 
-const float FLOCKSIZE = 1.0;
+const float FLOCKSIZE = 5.0;
+#define ATTRACTION_VELOCITY 1.0f
+#define ORIENTATION_VELOCITY 0.5f
 const float epsilon = 1.0e-4;
 
 // __device__ Functions
@@ -24,13 +26,12 @@ __device__ int GPU_globalindex(){
                 threadIdx.x;
 }
 
-__device__ void closest_neighbors(glm::vec3*& points, int& n_points, int global_index, int total_number, glm::vec3 *c){
-  int j;
+__device__ void closest_neighbors(int*& points_indices, int& n_points, int global_index, int total_number, glm::vec3 *positions){
   n_points = 0;
-  for(j=0;j<total_number;++j){
+  for(int j=0;j<total_number;++j){
     if(j != global_index){
-      if(glm::distance(c[j], c[global_index]) < FLOCKSIZE){
-        points[n_points] = c[j];
+      if(glm::distance(positions[j], positions[global_index]) < FLOCKSIZE){
+        points_indices[n_points] = j;
         n_points++;
       }
     }
@@ -39,23 +40,34 @@ __device__ void closest_neighbors(glm::vec3*& points, int& n_points, int global_
 
 // __global__ Functions
 
-__device__ glm::vec3 avoidance(glm::vec3* points, int n_points, glm::vec3* cur_boid){
+__device__ glm::vec3 resultant(glm::vec3* positions, int* points_indices, int n_points, int cur_boid_index){
     glm::vec3 new_vec(0,0,0);
     for(int j=0;j<n_points;++j)
-      new_vec += glm::normalize(points[j] - *cur_boid)*(-1.0f);
+        new_vec += glm::normalize(positions[points_indices[j]] - positions[cur_boid_index]);
     return new_vec;
 }
 
-__global__ void GPU_update_vector(glm::vec3 *dj, glm::vec3 *c, int n){
+__device__ glm::vec3 resultant_direction(glm::vec3* directions, int* points_indices, int n_points, int cur_boid_index){
+    glm::vec3 new_vec(0,0,0);
+    for(int j=0;j<n_points;++j)
+        new_vec += glm::normalize(directions[points_indices[j]]);
+
+    return new_vec;
+}
+
+__global__ void GPU_update_vector(glm::vec3 *directions_output, glm::vec3 *directions_input, glm::vec3 *positions, int n){
         int index = GPU_globalindex();
         if(index < n)
         {
+                directions_output[index] = glm::vec3(0,0,0);
                 int n_points = 0;
-                glm::vec3* points = new glm::vec3[n];
-                closest_neighbors(points, n_points, index, n, c);
-
-                dj[index] += avoidance(points, n_points, &c[index]);
-                delete[] points;
+                int* points_indices = new int[n];
+                closest_neighbors(points_indices, n_points, index, n, positions);
+                glm::vec3 sum_vector = resultant(positions, points_indices, n_points, index);
+                glm::vec3 sum_direction = resultant_direction(directions_input, points_indices, n_points, index);
+                directions_output[index] += sum_vector*-1.0f;
+                directions_output[index] += sum_vector*ATTRACTION_VELOCITY + sum_direction*ORIENTATION_VELOCITY;
+                delete[] points_indices;
         }
 }
 
@@ -76,7 +88,7 @@ __global__ void GPU_Update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj
                 {
                         modelMatrices[i] = glm::rotate(modelMatrices[i], -w[i], raxis[i]);
                 }
-                modelMatrices[i] = glm::translate(modelMatrices[i],dj[i]*0.0125f);               // Falta Delta, reemp. por 0.0125
+                modelMatrices[i] = glm::translate(modelMatrices[i],glm::normalize(dj[i])*0.0125f);
                 if(glm::length(raxis[i]) > epsilon)
                 {
                         modelMatrices[i] = glm::rotate(modelMatrices[i], w[i], raxis[i]);
@@ -122,7 +134,7 @@ void update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj, glm::vec3 *c,
 
         dim3 grid(n,1,1);           // Max 2147483647 , 65535, 65535 blocks
         dim3 block(1,1,1);          // Max 1024 threads per block
-        GPU_update_vector<<<grid,block>>> (d_dj, d_c,n);
+        GPU_update_vector<<<grid,block>>> (d_dj, d_d, d_c,n);
         GPU_Update<<<grid,block>>> (d_modelMatrices, d_d, d_dj, d_c, d_raxis, d_w, n, cT);
 
         cudaMemcpy(modelMatrices, d_modelMatrices, m4size, cudaMemcpyDeviceToHost);
