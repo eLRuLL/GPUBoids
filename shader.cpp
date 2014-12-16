@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <iterator>
 using namespace std;
 
 #include <stdlib.h>
@@ -13,42 +14,41 @@ using namespace std;
 
 #include "shader.h"
 
-GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+std::string ReadFileAsString(const char *file_name) {
+    std::ifstream in(file_name);
+    std::string s((std::istreambuf_iterator<char>(in)),
+                   std::istreambuf_iterator<char>());
+    in.close();
+    return s;
+}
 
+GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// Read the Vertex Shader code from the file
-	std::string VertexShaderCode;
-	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
-	if(VertexShaderStream.is_open()){
-		std::string Line = "";
-		while(getline(VertexShaderStream, Line))
-			VertexShaderCode += "\n" + Line;
-		VertexShaderStream.close();
-	}else{
-		printf("Impossible to open %s. Are you in the right directory ? \n", vertex_file_path);
+	std::string VertexShaderCode = ReadFileAsString(vertex_file_path);
+    if (VertexShaderCode.empty()) {
+        std::cerr << "Error while loading Vertex shader code.  "
+            << "Are you in the right directory ? [ "
+            << vertex_file_path << " ]" << std::endl;
 		getchar();
 		return 0;
 	}
 
 	// Read the Fragment Shader code from the file
-	std::string FragmentShaderCode;
-	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
-	if(FragmentShaderStream.is_open()){
-		std::string Line = "";
-		while(getline(FragmentShaderStream, Line))
-			FragmentShaderCode += "\n" + Line;
-		FragmentShaderStream.close();
+	std::string FragmentShaderCode = ReadFileAsString(fragment_file_path);
+    if (FragmentShaderCode.empty()) {
+        std::cerr << "Error while loading Fragment shader code.  "
+            << "Are you in the right directory ? [ "
+            << fragment_file_path << " ]" << std::endl;
+		getchar();
+		return 0;
 	}
-
-
 
 	GLint Result = GL_FALSE;
 	int InfoLogLength;
-
-
 
 	// Compile Vertex Shader
 	printf("Compiling shader : %s\n", vertex_file_path);
