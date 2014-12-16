@@ -1,4 +1,5 @@
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -26,28 +27,10 @@ using namespace glm;
 
 GLFWwindow* window;
 
-
-
-// class boid
-// {
-// public:
-// 	vector<vec3> c(n,vec3(0.0,0.0,0.0));
-// 	vector<vec3> d(n,vec3(0.0,0.0,0.25));
-// 	vector<vec3> dj(d);
-// 	vector<float> w(n,0.0);
-// 	vector<vec3> raxis(n,vec3(0,1,0));
-
-// 	random_device rd;
-// 	mt19937 gen(rd());
-// 	uniform_real_distribution<float> fd(-10.0,10.0);
-
-// };
-
-
 int main( int argc, char *argv[])
 {
 
-	int n = stoi(argv[1]);
+	int num_fishes = stoi(argv[1]);
 	int p = stoi(argv[2]);
 	const float epsilon = 1.0e-4;
 
@@ -107,13 +90,13 @@ int main( int argc, char *argv[])
 	Mesh fish("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
 	fish.loadMesh("data/models/trout.obj");
 	fish.setColorTexture("data/textures/jade.jpg", "myTextureSampler");
-	vector<Mesh> swarm(n,fish);
-	vector<mat4> modelMatrices(n,glm::mat4(1));
-	vector<vec3> c(n,vec3(0.0,0.0,0.0));
-	vector<vec3> d(n,vec3(0.0,0.0,0.25));
-	vector<vec3> dj(d);
-	vector<float> w(n,0.0);
-	vector<vec3> raxis(n,vec3(0,1,0));
+	vector<Mesh> swarm(num_fishes,fish);
+	vector<mat4> modelMatrices(num_fishes,glm::mat4(1));
+	vector<vec3> positions(num_fishes,vec3(0.0,0.0,0.0));
+	vector<vec3> directions(num_fishes,vec3(0.0,0.0,0.25));
+	vector<vec3> updated_directions(directions);
+	vector<float> angle(num_fishes,0.0);
+	vector<vec3> raxis(num_fishes,vec3(0,1,0));
 
 	for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
 	{
@@ -132,8 +115,8 @@ int main( int argc, char *argv[])
 			cz = fd(gen);
 		}
 		while((cx*cx + cy*cy + cz*cz > 10*10) || (cx*cx + cy*cy + cz*cz < 9.5*9.5));
-		c[i] = vec3(cx,cy,cz);
-		modelMatrices[i] = translate(modelMatrices[i], c[i]);
+		positions[i] = vec3(cx,cy,cz);
+		modelMatrices[i] = translate(modelMatrices[i], positions[i]);
 	}
 
 	// Mesh shark("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
@@ -179,7 +162,9 @@ int main( int argc, char *argv[])
 		mat4 ProjectionMatrix = getProjectionMatrix();
 		mat4 ViewMatrix = getViewMatrix();							
 
-		update(&modelMatrices[0],&d[0],&dj[0],&c[0],&raxis[0],&w[0],n, float(currentTime));
+		update(&modelMatrices[0], &directions[0],
+                       &updated_directions[0], &positions[0],
+                       &raxis[0], &angle[0], num_fishes, float(currentTime));
 
 		for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
 		{
