@@ -9,8 +9,7 @@
 
 #include "main.h"
 
-const float FLOCKSIZE = 3.0;
-const float MIN_COLLISON_AVOIDANCE = 3.0;
+const float FLOCKSIZE = 2.0;
 const float epsilon = 1.0e-4;
 
 // __device__ Functions
@@ -43,13 +42,9 @@ __global__ void GPU_Repel(glm::vec3 *dj, glm::vec3 *c, int n){
                     }
                 }
 
-                for(j=0;j<cur_j;++j){
-                  float dist = glm::distance(c[i], points[j]);
-                  if(dist < MIN_COLLISON_AVOIDANCE){
+                for(j=0;j<cur_j;++j)
                     dj[i] += glm::normalize(points[j] - c[i])*(-1.0f);
-                    
-                  }
-                }
+
                 delete[] points;
         }
 }
