@@ -1,5 +1,3 @@
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -29,7 +27,6 @@ GLFWwindow* window;
 
 int main( int argc, char *argv[])
 {
-
 	int num_fishes = stoi(argv[1]);
 	int p = stoi(argv[2]);
 	const float epsilon = 1.0e-4;
@@ -50,9 +47,13 @@ int main( int argc, char *argv[])
 	// Open a window and create its OpenGL context
 	int width = 1280;	//1280 - 1920
 	int height = 1024;	//1024 - 1080
-	window = glfwCreateWindow(width, height, "Fishschool Collective Behavior Simulation", NULL/*glfwGetPrimaryMonitor()*/, NULL);
-	if (window == NULL){
-		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
+	window = glfwCreateWindow(width, height,
+                        "Fishschool Collective Behavior Simulation",
+                        NULL /*glfwGetPrimaryMonitor()*/, NULL);
+	if (window == NULL) {
+		fprintf(stderr, "Failed to open GLFW window."
+                        " If you have an Intel GPU, they are not 3.3 compatible."
+                        " Try the 2.1 version of the tutorials.\n");
 		glfwTerminate();
 		return -1;
 	}
@@ -87,7 +88,8 @@ int main( int argc, char *argv[])
 	mt19937 gen(rd());
 	uniform_real_distribution<float> fd(-10.0,10.0);
 
-	Mesh fish("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
+	Mesh fish("Shaders/TransformVertexShader.vertexshader",
+                  "Shaders/TextureFragmentShader.fragmentshader");
 	fish.loadMesh("data/models/trout.obj");
 	fish.setColorTexture("data/textures/jade.jpg", "myTextureSampler");
 	vector<Mesh> swarm(num_fishes,fish);
@@ -119,34 +121,7 @@ int main( int argc, char *argv[])
 		modelMatrices[i] = translate(modelMatrices[i], positions[i]);
 	}
 
-	// Mesh shark("Shaders/TransformVertexShader.vertexshader", "Shaders/TextureFragmentShader.fragmentshader");
-	// shark.loadMesh("data/models/shark.obj");
-	// shark.setColorTexture("data/textures/sapphire.jpg", "myTextureSampler");
-	// vector<Mesh> predators(p,shark);
-
-/*	for(vector<Mesh>::iterator it = predators.begin(); it != predators.end(); it++)
-	{
-		int i = it-predators.begin();
-		float cx, cy, cz;
-		do
-		{
-			cx = fd(gen);
-			cy = fd(gen);
-			cz = fd(gen);
-		}
-		while((cx*cx + cy*cy + cz*cz > 10*10));
-		vec3 cs(cx,cy,cz);
-		vec3 cs(0,0,0);
-
-		it->setModelMatrix(translate(it->getModelMatrix(), cs));
-	}*/
-
-	// mat4 ViewMatrix = translate(mat4(1.0f), vec3(0.0f,0.0f,-10.0f));
-	// mat4 ViewMatrix2 = rotate(ViewMatrix, float(M_PI/2), vec3(1,0,0));
-	// mat4 ViewMatrix3 = rotate(ViewMatrix, float(-M_PI/2), vec3(0,1,0));
-
 	double lastTime = glfwGetTime();
-
 	do
 	{
 		// Clear the screen
@@ -166,11 +141,11 @@ int main( int argc, char *argv[])
                        &updated_directions[0], &positions[0],
                        &raxis[0], &angle[0], num_fishes, float(currentTime));
 
-		for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
-		{
-			mat4 MVP = ProjectionMatrix * ViewMatrix * it->getModelMatrix();
-			it->draw(MVP);
-		}
+                for (auto &fish : swarm) {
+                        const mat4 MVP = ProjectionMatrix * ViewMatrix
+                                * fish.getModelMatrix();
+                        fish.draw(MVP);
+                }
 
 		// for(vector<Mesh>::iterator it = predators.begin(); it != predators.end(); it++)
 		// {
