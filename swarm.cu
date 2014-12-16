@@ -29,23 +29,22 @@ __global__ void GPU_Repel(glm::vec3 *dj, glm::vec3 *c, int n){
         int i = GPU_globalindex();
         if(i < n)
         {
+            int j;
+            int cur_j = 0;
+            glm::vec3* points = new glm::vec3[n];
 
-                int j;
-                int cur_j = 0;
-                glm::vec3* points = new glm::vec3[n];
-
-                for(j=0;j<n;++j){
-                  if(j != i)
-                    if(glm::distance(c[j], c[i]) < FLOCKSIZE){
-                      points[cur_j] = c[j];
-                      cur_j++;
-                    }
+            for(j=0;j<n;++j){
+              if(j != i)
+                if(glm::distance(c[j], c[i]) < FLOCKSIZE){
+                  points[cur_j] = c[j];
+                  cur_j++;
                 }
+            }
 
-                for(j=0;j<cur_j;++j)
-                    dj[i] += glm::normalize(points[j] - c[i])*(-1.0f);
+            for(j=0;j<cur_j;++j)
+                dj[i] += glm::normalize(points[j] - c[i])*(-1.0f);
 
-                delete[] points;
+            delete[] points;
         }
 }
 
@@ -54,34 +53,30 @@ __global__ void GPU_Update(glm::mat4 *modelMatrices, glm::vec3 *d, glm::vec3 *dj
         if(i < n)
         {
 
-                float theta = 0.0;
-                glm::vec3 cr(0,0,0);
-                if(glm::length(d[i]-dj[i]) > epsilon)
-                {
-                        theta = glm::acos(glm::dot(glm::normalize(d[i]),glm::normalize(dj[i])));
-                        cr = glm::normalize(glm::cross(d[i],dj[i]));
-                }
+            float theta = 0.0;
+            glm::vec3 cr(0,0,0);
+            if(glm::length(d[i]-dj[i]) > epsilon)
+            {
+                theta = glm::acos(glm::dot(glm::normalize(d[i]),glm::normalize(dj[i])));
+                cr = glm::normalize(glm::cross(d[i],dj[i]));
+            }
 
-                if(glm::length(raxis[i]) > epsilon)
-                {
-                        modelMatrices[i] = glm::rotate(modelMatrices[i], -w[i], raxis[i]);
-                }
-                modelMatrices[i] = glm::translate(modelMatrices[i],dj[i]*0.0125f);               // Falta Delta, reemp. por 0.0125
-                if(glm::length(raxis[i]) > epsilon)
-                {
-                        modelMatrices[i] = glm::rotate(modelMatrices[i], w[i], raxis[i]);
-                }
+            if(glm::length(raxis[i]) > epsilon)
+                modelMatrices[i] = glm::rotate(modelMatrices[i], -w[i], raxis[i]);
+            modelMatrices[i] = glm::translate(modelMatrices[i],dj[i]*0.0125f);               // Falta Delta, reemp. por 0.0125
+            if(glm::length(raxis[i]) > epsilon)
+                modelMatrices[i] = glm::rotate(modelMatrices[i], w[i], raxis[i]);
 
 
-                if(glm::length(cr) > epsilon)
-                {
-                        modelMatrices[i] = glm::rotate(modelMatrices[i], theta, cr);
-                        raxis[i] = glm::normalize(glm::cross(glm::vec3(0.0,0.0,0.25),dj[i]));
-                        w[i] = glm::acos(glm::dot(glm::normalize(dj[i]),glm::normalize(glm::vec3(0.0,0.0,0.25))));;
-                }
+            if(glm::length(cr) > epsilon)
+            {
+                modelMatrices[i] = glm::rotate(modelMatrices[i], theta, cr);
+                raxis[i] = glm::normalize(glm::cross(glm::vec3(0.0,0.0,0.25),dj[i]));
+                w[i] = glm::acos(glm::dot(glm::normalize(dj[i]),glm::normalize(glm::vec3(0.0,0.0,0.25))));;
+            }
 
-                d[i] = dj[i];
-                c[i] += d[i]*0.0125f;
+            d[i] = dj[i];
+            c[i] += d[i]*0.0125f;
 
         }
 }

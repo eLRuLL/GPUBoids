@@ -48,7 +48,7 @@ int main( int argc, char *argv[])
 {
 
 	int n = stoi(argv[1]);
-	int p = stoi(argv[2]);
+	// int p = stoi(argv[2]);
 	const float epsilon = 1.0e-4;
 
 	// Initialise GLFW
