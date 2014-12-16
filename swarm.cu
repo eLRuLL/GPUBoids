@@ -1,6 +1,7 @@
 #define GLM_FORCE_RADIANS
 // #define FLOCKSIZE 10
 // #define MIN_COLLISON_AVOIDANCE 10
+#include <cuda.h>
 #include <iostream>
 #include <stdio.h>
 #include <glm/glm.hpp>
