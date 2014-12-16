@@ -39,18 +39,22 @@ __device__ void closest_neighbors(glm::vec3*& points, int& n_points, int global_
 
 // __global__ Functions
 
+__device__ glm::vec3 avoidance(glm::vec3* points, int n_points, glm::vec3* cur_boid){
+    glm::vec3 new_vec(0,0,0);
+    for(int j=0;j<n_points;++j)
+      new_vec += glm::normalize(points[j] - *cur_boid)*(-1.0f);
+    return new_vec;
+}
+
 __global__ void GPU_update_vector(glm::vec3 *dj, glm::vec3 *c, int n){
-        int i = GPU_globalindex();
-        if(i < n)
+        int index = GPU_globalindex();
+        if(index < n)
         {
                 int n_points = 0;
                 glm::vec3* points = new glm::vec3[n];
-                closest_neighbors(points, n_points, i, n, c);
+                closest_neighbors(points, n_points, index, n, c);
 
-                int j;
-                for(j=0;j<n_points;++j)
-                    dj[i] += glm::normalize(points[j] - c[i])*(-1.0f);
-
+                dj[index] += avoidance(points, n_points, &c[index]);
                 delete[] points;
         }
 }
