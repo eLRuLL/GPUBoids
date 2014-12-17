@@ -1,12 +1,9 @@
-// Include GLFW
 #include <GLFW/glfw3.h>
 extern GLFWwindow* window; // The "extern" keyword here is to access the variable "window" declared in tutorialXXX.cpp. This is a hack to keep the tutorials simple. Please avoid this.
 
-// Include GLM
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-using namespace glm;
 
 #include "controls.h"
 
@@ -20,7 +17,6 @@ glm::mat4 getProjectionMatrix(){
 	return ProjectionMatrix;
 }
 
-
 // Initial position : on +Z
 glm::vec3 position = glm::vec3( 0, 0, 5 ); 
 // Initial horizontal angle : toward -Z
@@ -32,8 +28,6 @@ float initialFoV = 45.0f;
 
 float speed = 3.0f; // 3 units / second
 float mouseSpeed = 0.005f;
-
-
 
 void computeMatricesFromInputs(){
 

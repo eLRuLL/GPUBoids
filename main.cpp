@@ -1,27 +1,29 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <cmath>
-#include <vector>
-#include <string>
 #include <algorithm>
+#include <iostream>
 #include <random>
+#include <string>
+#include <vector>
+
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 
 #define GLM_FORCE_RADIANS
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include "shader.h"
 #include "controls.h"
-#include "mesh.h"
-
 #include "main.h"
+#include "mesh.h"
+#include "shader.h"
 
-using namespace std;
 using namespace glm;
+using namespace std;
 
 GLFWwindow* window;
 

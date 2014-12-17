@@ -1,13 +1,12 @@
 #define GLM_FORCE_RADIANS
 
-#include <cuda.h>
 #include <iostream>
-#include <stdio.h>
+
+#include <cuda.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
-
-#include "main.h"
 
 const float FLOCKSIZE = 5.0;
 #define ATTRACTION_VELOCITY 1.0f

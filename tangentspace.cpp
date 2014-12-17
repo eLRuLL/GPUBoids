@@ -1,4 +1,5 @@
 #include <vector>
+
 #include <glm/glm.hpp>
 
 #include "tangentspace.h"
@@ -69,5 +70,3 @@ void computeTangentBasis(
 
 
 }
-
-

@@ -1,14 +1,13 @@
-#include <stdio.h>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <iterator>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <iterator>
-using namespace std;
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <GL/glew.h>
 

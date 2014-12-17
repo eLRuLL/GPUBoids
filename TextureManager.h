@@ -1,13 +1,13 @@
 #ifndef TextureManager_H
 #define TextureManager_H
 
-// #include <windows.h>
+#include <map>
+
 #include <GL/glew.h>
 
 #include <GLFW/glfw3.h>
 
 #include <FreeImage.h>
-#include <map>
 
 class TextureManager
 {

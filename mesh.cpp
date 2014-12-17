@@ -1,14 +1,13 @@
 #include <iostream>
 
+#include "controls.h"
 #include "mesh.h"
+#include "objloader.h"
 #include "shader.h"
 #include "TextureManager.h"
-#include "objloader.h"
-#include "controls.h"
 
 // Include GLM
 #define GLM_FORCE_RADIANS
-#include <glm/gtc/matrix_transform.hpp>
 
 Mesh::Mesh(const char* filenameFragment, const char* filenameVertex)
 {

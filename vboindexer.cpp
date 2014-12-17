@@ -1,12 +1,11 @@
-#include <vector>
 #include <map>
+#include <vector>
+
+#include <cstring>
 
 #include <glm/glm.hpp>
 
 #include "vboindexer.h"
-
-#include <string.h> // for memcmp
-
 
 // Returns true iif v1 can be considered equal to v2
 bool is_near(float v1, float v2){
