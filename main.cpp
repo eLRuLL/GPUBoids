@@ -126,7 +126,7 @@ int main( int argc, char *argv[])
 		}
 		while((cx*cx + cy*cy + cz*cz > 10*10) || (cx*cx + cy*cy + cz*cz < 9.5*9.5));
 		positions[i] = vec3(cx,cy,cz);
-                positions[i] = vec3(0,0,0);
+    //positions[i] = vec3(0,0,0);
 		modelMatrices[i] = translate(modelMatrices[i], positions[i]);
 	}
 
