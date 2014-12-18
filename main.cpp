@@ -89,6 +89,7 @@ int main( int argc, char *argv[])
 	random_device rd;
 	mt19937 gen(rd());
 	uniform_real_distribution<float> fd(-10.0,10.0);
+	uniform_real_distribution<float> fd_one(0.0,1.0);
 
 	Mesh fish("Shaders/TransformVertexShader.vertexshader",
                   "Shaders/TextureFragmentShader.fragmentshader");
@@ -98,6 +99,11 @@ int main( int argc, char *argv[])
 	vector<mat4> modelMatrices(num_boids,glm::mat4(1));
 	vector<vec3> positions(num_boids,vec3(0.0,0.0,0.0));
 	vector<vec3> directions(num_boids,vec3(0.0,0.0,0.25));
+        for (auto &v : directions) {
+                v[0] = fd_one(gen);
+                v[1] = fd_one(gen);
+        }
+
 	vector<vec3> updated_directions(directions);
 	vector<float> angle(num_boids,0.0);
 	vector<vec3> raxis(num_boids,vec3(0,1,0));
@@ -120,6 +126,7 @@ int main( int argc, char *argv[])
 		}
 		while((cx*cx + cy*cy + cz*cz > 10*10) || (cx*cx + cy*cy + cz*cz < 9.5*9.5));
 		positions[i] = vec3(cx,cy,cz);
+                positions[i] = vec3(0,0,0);
 		modelMatrices[i] = translate(modelMatrices[i], positions[i]);
 	}
 
@@ -148,25 +155,6 @@ int main( int argc, char *argv[])
                                 * fish.getModelMatrix();
                         fish.draw(MVP);
                 }
-
-		// for(vector<Mesh>::iterator it = predators.begin(); it != predators.end(); it++)
-		// {
-		// 	// it->setModelMatrix(translate(it->getModelMatrix(), vec3(sin(currentTime),0.0,cos(currentTime))*float(delta)));
-		// 	it->setModelMatrix(rotate(it->getModelMatrix(), 0.1f, vec3(0,1,0)));
-
-		// 	glViewport (width/4, 0, width/2, height/2);
-		// 	mat4 MVP = ProjectionMatrix * ViewMatrix * it->getModelMatrix();
-		// 	it->draw(MVP);
-
-		// 	glViewport (width/4, height/2, width/2, height/2);
-		// 	MVP = ProjectionMatrix * ViewMatrix2 * it->getModelMatrix();
-		// 	it->draw(MVP);
-
-		// 	glViewport (width/2, 0, width/2, height/2);
-		// 	MVP = ProjectionMatrix * ViewMatrix3 * it->getModelMatrix();
-		// 	it->draw(MVP);
-		// }
-
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();

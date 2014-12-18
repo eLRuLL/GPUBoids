@@ -121,17 +121,6 @@ GLuint Mesh::getProgramID()
 	return programID;
 }
 
-
-
-// glm::mat4 Mesh::getModelMatrix()
-// {
-// 	return modelMatrix;
-// }
-// void Mesh::setModelMatrix(glm::mat4 newModelMatrix)
-// {
-// 	modelMatrix = newModelMatrix;
-// }
-
 glm::mat4 Mesh::getModelMatrix()
 {
 	return *modelMatrix;
