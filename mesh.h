@@ -9,10 +9,10 @@
 class Mesh
 {
 public:
-	Mesh(const char* filenameFragment, const char* filenameVertex);
+	Mesh(unsigned long long n_boids, const char* filenameFragment, const char* filenameVertex);
 	~Mesh();
 	GLuint getProgramID();
-	void draw(glm::mat4 MVP);
+	void draw(glm::mat4 VP, float currentTime);
 	glm::mat4 getModelMatrix();
 	// void setModelMatrix(glm::mat4 newModelMatrix);
 	void setModelMatrix(glm::mat4 *newModelMatrix);
@@ -22,8 +22,12 @@ private:
 	GLuint vertexArrayID;
 	GLuint programID;
 	GLuint matrixID; 
+	GLuint timeID; 
 	GLuint texture; 
 	GLuint textureID;
+	GLuint orientationbuffer;
+	GLuint positionbuffer;
+	GLuint directionbuffer;
 	GLuint vertexbuffer;
 	GLuint uvbuffer;
 	GLuint normalbuffer;
@@ -34,7 +38,11 @@ private:
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals;
 
+	std::vector<glm::vec3> positions;
+	std::vector<glm::mat4> orientations;
+	// std::vector<glm::vec3> directions;
 
+	unsigned long long num_boids;
 
 	void VBO();
 };

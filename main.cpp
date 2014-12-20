@@ -21,6 +21,7 @@
 #include "main.h"
 #include "mesh.h"
 #include "shader.h"
+#include "interop.h"
 
 using namespace glm;
 using namespace std;
@@ -29,8 +30,7 @@ GLFWwindow* window;
 
 int main( int argc, char *argv[])
 {
-	int num_boids = stoi(argv[1]);
-	int p = stoi(argv[2]);
+	int num_boids = stoull(argv[1]);
 	const float epsilon = 1.0e-4;
 
 	// Initialise GLFW
@@ -86,50 +86,12 @@ int main( int argc, char *argv[])
 
 	vec3 lightPos = vec3(0, 0, 0);
 
-	random_device rd;
-	mt19937 gen(rd());
-	uniform_real_distribution<float> fd(-10.0,10.0);
-	uniform_real_distribution<float> fd_one(0.0,1.0);
-
-	Mesh fish("Shaders/TransformVertexShader.vertexshader",
+	Mesh fish(num_boids,"Shaders/TransformVertexShader.vertexshader",
                   "Shaders/TextureFragmentShader.fragmentshader");
 	fish.loadMesh("data/models/trout.obj");
-	fish.setColorTexture("data/textures/jade.jpg", "myTextureSampler");
-	vector<Mesh> swarm(num_boids,fish);
-	vector<mat4> modelMatrices(num_boids,glm::mat4(1));
-	vector<vec3> positions(num_boids,vec3(0.0,0.0,0.0));
-	vector<vec3> directions(num_boids,vec3(0.0,0.0,0.25));
-        for (auto &v : directions) {
-                v[0] = fd_one(gen);
-                v[1] = fd_one(gen);
-        }
+	fish.setColorTexture("data/textures/amethyst.jpg", "myTextureSampler");
 
-	vector<vec3> updated_directions(directions);
-	vector<float> angle(num_boids,0.0);
-	vector<vec3> raxis(num_boids,vec3(0,1,0));
-
-	for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
-	{
-		int i = it-swarm.begin();
-		it->setModelMatrix(&modelMatrices[i]);
-	}
-
-	for(vector<Mesh>::iterator it = swarm.begin(); it != swarm.end(); it++)
-	{
-		int i = it-swarm.begin();
-		float cx, cy, cz;
-		do
-		{
-			cx = fd(gen);
-			cy = fd(gen);
-			cz = fd(gen);
-		}
-		while((cx*cx + cy*cy + cz*cz > 10*10) || (cx*cx + cy*cy + cz*cz < 9.5*9.5));
-		positions[i] = vec3(cx,cy,cz);
-                positions[i] = vec3(0,0,0);
-		modelMatrices[i] = translate(modelMatrices[i], positions[i]);
-	}
-
+	mat4 ViewMatrix = translate(mat4(1.0), vec3(0,0,-2.0f));
 	double lastTime = glfwGetTime();
 	do
 	{
@@ -146,15 +108,10 @@ int main( int argc, char *argv[])
 		mat4 ProjectionMatrix = getProjectionMatrix();
 		mat4 ViewMatrix = getViewMatrix();
 
-		update(&modelMatrices[0], &directions[0],
-                       &updated_directions[0], &positions[0],
-                       &raxis[0], &angle[0], num_boids, float(currentTime));
+		interop_run(num_boids, currentTime, delta);
+		mat4 VP = ProjectionMatrix * ViewMatrix;
+		fish.draw(VP, float(currentTime));
 
-                for (auto &fish : swarm) {
-                        const mat4 MVP = ProjectionMatrix * ViewMatrix
-                                * fish.getModelMatrix();
-                        fish.draw(MVP);
-                }
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();

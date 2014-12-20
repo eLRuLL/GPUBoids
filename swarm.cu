@@ -71,6 +71,8 @@ __global__ void GPU_update_vector(glm::vec3 *directions_output, glm::vec3 *direc
         int index = GPU_globalindex();
         if(index < num_boids)
         {
+
+                // directions_output[index] = glm::vec3(0,0,50);
                 directions_output[index] = glm::vec3(0,0,0);
                 int n_points = 0;
                 int* points_indices = new int[num_boids];
@@ -110,31 +112,31 @@ __global__ void GPU_Update(glm::mat4 *modelMatrices, glm::vec3 *directions,
         if(i < num_boids)
         {
 
-                float theta = 0.0;
-                glm::vec3 cr(0,0,0);
-                if(glm::length(directions[i]-updated_directions[i]) > epsilon)
-                {
-                        theta = glm::acos(glm::dot(glm::normalize(directions[i]),glm::normalize(updated_directions[i])));
-                        cr = glm::normalize(glm::cross(directions[i],updated_directions[i]));
-                }
+                // float theta = 0.0;
+                // glm::vec3 cr(0,0,0);
+                // if(glm::length(directions[i]-updated_directions[i]) > epsilon)
+                // {
+                //         theta = glm::acos(glm::dot(glm::normalize(directions[i]),glm::normalize(updated_directions[i])));
+                //         cr = glm::normalize(glm::cross(directions[i],updated_directions[i]));
+                // }
 
-                if(glm::length(raxis[i]) > epsilon)
-                {
-                        modelMatrices[i] = glm::rotate(modelMatrices[i], -angles[i], raxis[i]);
-                }
+                // if(glm::length(raxis[i]) > epsilon)
+                // {
+                //         modelMatrices[i] = glm::rotate(modelMatrices[i], -angles[i], raxis[i]);
+                // }
                 modelMatrices[i] = glm::translate(modelMatrices[i], updated_directions[i] * 0.000035f);
-                if(glm::length(raxis[i]) > epsilon)
-                {
-                        modelMatrices[i] = glm::rotate(modelMatrices[i], angles[i], raxis[i]);
-                }
+                // if(glm::length(raxis[i]) > epsilon)
+                // {
+                //         modelMatrices[i] = glm::rotate(modelMatrices[i], angles[i], raxis[i]);
+                // }
 
 
-                if(glm::length(cr) > epsilon)
-                {
-                        modelMatrices[i] = glm::rotate(modelMatrices[i], theta, cr);
-                        raxis[i] = glm::normalize(glm::cross(glm::vec3(0.0,0.0,0.25),updated_directions[i]));
-                        angles[i] = glm::acos(glm::dot(glm::normalize(updated_directions[i]),glm::normalize(glm::vec3(0.0,0.0,0.25))));;
-                }
+                // if(glm::length(cr) > epsilon)
+                // {
+                //         modelMatrices[i] = glm::rotate(modelMatrices[i], theta, cr);
+                //         raxis[i] = glm::normalize(glm::cross(glm::vec3(0.0,0.0,0.25),updated_directions[i]));
+                //         angles[i] = glm::acos(glm::dot(glm::normalize(updated_directions[i]),glm::normalize(glm::vec3(0.0,0.0,0.25))));;
+                // }
 
                 // TODO Remove this line, we perform cudaMemcpy later in the code
                 directions[i] = updated_directions[i];
@@ -168,12 +170,12 @@ void update(glm::mat4 *modelMatrices, glm::vec3 *directions,
         cudaMemcpy(new_raxis, raxis, v3size, cudaMemcpyHostToDevice);
         cudaMemcpy(new_angles, angles, fsize, cudaMemcpyHostToDevice);
 
-        dim3 grid(num_boids,1,1);  // Max 2147483647 , 65535, 65535 blocks
+        dim3 grid(num_boids,1,1);  // Max 2147483647` , 65535, 65535 blocks
         dim3 block(1,1,1);          // Max 1024 threads per block
-        GPU_update_vector<<<grid,block>>> (
-                        new_updated_directions,
-                        new_directions,
-                        new_positions, num_boids);
+        // GPU_update_vector<<<grid,block>>> (
+                        // new_updated_directions,
+                        // new_directions,
+                        // new_positions, num_boids);
         GPU_Update<<<grid,block>>> (
                         d_modelMatrices, new_directions,
                         new_updated_directions, new_positions,
