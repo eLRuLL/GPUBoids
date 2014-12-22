@@ -126,11 +126,14 @@ int main( int argc, char *argv[])
 		}
 		while((cx*cx + cy*cy + cz*cz > 10*10) || (cx*cx + cy*cy + cz*cz < 9.5*9.5));
 		positions[i] = vec3(cx,cy,cz);
-    //positions[i] = vec3(0,0,0);
+    positions[i] = vec3(.0f,.0f,.0f);
 		modelMatrices[i] = translate(modelMatrices[i], positions[i]);
 	}
 
 	double lastTime = glfwGetTime();
+	vec3 algo(0.0f,0.0f,0.0f);
+	algo = normalize(algo);
+	printf("%f %f %f", algo.x, algo.y, algo.z);
 	do
 	{
 		// Clear the screen

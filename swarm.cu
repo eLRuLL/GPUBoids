@@ -1,7 +1,7 @@
 #define GLM_FORCE_RADIANS
 
 #include <iostream>
-
+#include <stdio.h>
 #include <cuda.h>
 
 #include <glm/glm.hpp>
@@ -9,8 +9,8 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
-const float kRepulsionZoneRadius = 10.0;
-const float kOrientationZoneRadius = 90.0;
+const float kRepulsionZoneRadius = 1.0;
+const float kOrientationZoneRadius = 10.0;
 const float kVisualFieldAngle = 180.0 / 180.0 * 3.14159;
 
 #define ATTRACTION_WEIGHT 1.0f
@@ -19,8 +19,8 @@ const float kVisualFieldAngle = 180.0 / 180.0 * 3.14159;
 #define ACCELERATION 2.0f
 
 // @DELTA should be the time from a frame to another
-#define DELTA 5
-#define SIMULATION_SPEED 1
+#define DELTA 0.1f
+#define SIMULATION_SPEED 1.0f
 
 const float epsilon = 1.0e-4;
 
@@ -82,19 +82,19 @@ __device__ glm::vec3 stay_in_bounds(glm::vec3* positions, int cur_boid_index, in
     float y_min = -10.0;
     float z_min = -10.0;
 
-    if(positions[cur_boid_index].x < x_max)
-        new_vec.x += pow(x_max - positions[cur_boid_index].x, p);
-    if(positions[cur_boid_index].y < y_max)
-        new_vec.y += pow(y_max - positions[cur_boid_index].y, p);
-    if(positions[cur_boid_index].z < z_max)
-        new_vec.z += pow(z_max - positions[cur_boid_index].z, p);
+    if(positions[cur_boid_index].x > x_max)
+        new_vec.x -= pow(x_max - positions[cur_boid_index].x, p);
+    if(positions[cur_boid_index].y > y_max)
+        new_vec.y -= pow(y_max - positions[cur_boid_index].y, p);
+    if(positions[cur_boid_index].z > z_max)
+        new_vec.z -= pow(z_max - positions[cur_boid_index].z, p);
 
-    if(positions[cur_boid_index].x > x_min)
-        new_vec.x -= pow(x_min - positions[cur_boid_index].x, p);
-    if(positions[cur_boid_index].y > y_min)
-        new_vec.y -= pow(y_min - positions[cur_boid_index].y, p);
-    if(positions[cur_boid_index].z > z_min)
-        new_vec.z -= pow(z_min - positions[cur_boid_index].z, p);
+    if(positions[cur_boid_index].x < x_min)
+        new_vec.x += pow(x_min - positions[cur_boid_index].x, p);
+    if(positions[cur_boid_index].y < y_min)
+        new_vec.y += pow(y_min - positions[cur_boid_index].y, p);
+    if(positions[cur_boid_index].z < z_min)
+        new_vec.z += pow(z_min - positions[cur_boid_index].z, p);
 
     return new_vec;
 }
@@ -104,13 +104,6 @@ __device__ glm::vec3 calculate_direction(glm::vec3 from, glm::vec3 to){
     return goal - from;
 }
 
-__device__ glm::vec3 perceived_center(glm::vec3* positions, int* points_indices, int n_points, int cur_boid_index){
-    glm::vec3 new_vec(0,0,0);
-    for(int i=0; i<n_points; ++i){
-      new_vec += positions[points_indices[i]];
-    }
-    return new_vec/(n_points-1.0f);
-}
 
 __device__ glm::vec3 limit(glm::vec3 the_vec, float lim){
     float max_value = 0.0f;
@@ -120,12 +113,25 @@ __device__ glm::vec3 limit(glm::vec3 the_vec, float lim){
     return the_vec;
 }
 
+__device__ glm::vec3 avoid_collisions(glm::vec3* positions, int* points_indices, int n_points, int cur_boid_index){
+    glm::vec3 new_vec(.0f, .0f, .0f);
+    for(int i=0; i< n_points; ++i){
+        glm::vec3 offset = positions[points_indices[i]] - positions[cur_boid_index];
+        new_vec += offset / glm::length(offset);
+    }
+    if (glm::length(new_vec) > 0)
+        new_vec = -glm::normalize(new_vec);
+    return new_vec;
+}
+
 // __global__ Functions
 
 __global__ void GPU_update_vector(glm::vec3 *directions_output, glm::vec3 *directions_input, glm::vec3 *positions, int num_boids){
         int index = GPU_globalindex();
         if(index < num_boids)
         {
+                if(fabsf(positions[index].x) > 15 || fabsf(positions[index].y) > 15 || fabsf(positions[index].z) > 15)
+                    printf("[%d] WTFFF!!\n", index);
                 glm::vec3 new_direction = glm::vec3(0,0,0);
                 int n_points = 0;
                 int* points_indices = new int[num_boids];
@@ -134,31 +140,26 @@ __global__ void GPU_update_vector(glm::vec3 *directions_output, glm::vec3 *direc
                         num_boids, positions, directions_input, kRepulsionZoneRadius);
 
                 // 1
-                new_direction += calculate_direction(positions[index], perceived_center(positions, points_indices, n_points, index)) * PERCEIVED_CENTER_WEIGHT;
-                /*glm::vec3 sum_vector = resultant(positions, points_indices, n_points, index);
+                //new_direction += calculate_direction(positions[index], perceived_center(positions, points_indices, n_points, index)) * PERCEIVED_CENTER_WEIGHT;
+                //glm::vec3 sum_vector = resultant(positions, points_indices, n_points, index);
                 if (n_points) {
                     // since we have neighbors the repulsion behavior is applied
-                    directions_output[index] += -sum_vector;
+                    new_direction -= avoid_collisions(positions, points_indices, n_points, index);
                 } else {
                     // if there aren't any neighbors in the repulsion zone
                     // we need to explore the orientation zone
                     closest_neighbors(points_indices, n_points, index, num_boids,
                             positions, directions_input, kOrientationZoneRadius);
-                    sum_vector = resultant(positions, points_indices, n_points, index);
+                    glm::vec3 sum_vector = resultant(positions, points_indices, n_points, index);
                     glm::vec3 sum_direction =
                         resultant_direction(directions_input, points_indices, n_points, index);
                     if (n_points) {
-                        directions_output[index] +=
+                        new_direction +=
                             sum_vector * ATTRACTION_WEIGHT + sum_direction * ORIENTATION_WEIGHT;
-                    } else {
-                        // SPECIAL CASE
-                        // If there aren't any neighbors in any zone
-                        // then keep the current direction
-                        directions_output[index] += directions_input[index];
                     }
                 }
-                */
-                new_direction += stay_in_bounds(positions, index, 2)*8.0f;
+
+                new_direction += stay_in_bounds(positions, index, 2);//*8.0f;
                 delete[] points_indices;
                 new_direction = limit(new_direction, 1);
                 directions_output[index] = directions_input[index] + new_direction*(ACCELERATION/100.0f);
@@ -185,7 +186,8 @@ __global__ void GPU_Update(glm::mat4 *modelMatrices, glm::vec3 *directions,
                 // {
                 //         modelMatrices[i] = glm::rotate(modelMatrices[i], -angles[i], raxis[i]);
                 // }
-                glm::vec3 new_direction = updated_directions[i]*(DELTA/(20.0f - SIMULATION_SPEED + 1));
+                //glm::vec3 new_direction = updated_directions[i]*(DELTA/(20.0f - SIMULATION_SPEED + 1));
+                glm::vec3 new_direction = updated_directions[i]*DELTA;
                 modelMatrices[i] = glm::translate(modelMatrices[i], new_direction);
                 // if(glm::length(raxis[i]) > epsilon)
                 // {
