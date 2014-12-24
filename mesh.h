@@ -12,7 +12,7 @@ public:
 	Mesh(unsigned long long n_boids, const char* filenameFragment, const char* filenameVertex);
 	~Mesh();
 	GLuint getProgramID();
-	void draw(glm::mat4 VP, float currentTime);
+	void draw(glm::mat4 VP);
 	glm::mat4 getModelMatrix();
 	// void setModelMatrix(glm::mat4 newModelMatrix);
 	void setModelMatrix(glm::mat4 *newModelMatrix);
@@ -40,7 +40,7 @@ private:
 
 	std::vector<glm::vec3> positions;
 	std::vector<glm::mat4> orientations;
-	// std::vector<glm::vec3> directions;
+	std::vector<glm::vec3> directions;
 
 	unsigned long long num_boids;
 

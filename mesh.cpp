@@ -21,7 +21,6 @@ Mesh::Mesh(unsigned long long n_boids, const char* filenameFragment, const char*
 	programID = LoadShaders(filenameFragment, filenameVertex);
 	// Get a handle for our "MVP" uniform
 	matrixID = glGetUniformLocation(programID, "VP");
-	timeID = glGetUniformLocation(programID, "time");
 
 	// modelMatrix = glm::mat4(1);
 	// modelMatrix = new glm::mat4(1);
@@ -34,12 +33,11 @@ Mesh::Mesh(unsigned long long n_boids, const char* filenameFragment, const char*
 	std::uniform_real_distribution<float> fd(-10.0,10.0);
 
 	positions.resize(num_boids);
-	orientations.resize(num_boids);
-	glm::mat4 id(1);
+	orientations.resize(num_boids, glm::mat4(1));
+	directions.resize(num_boids, glm::vec3(0,0,0.25));
+
 	for(unsigned long long i = 0; i<num_boids; i++){
 		positions[i] = glm::vec3(fd(gen),fd(gen),fd(gen));
-		orientations[i] = id;
-	// directions.resize(num_boids, vec3(0,0,0.25));
 	}
 }
 
@@ -51,7 +49,7 @@ Mesh::~Mesh()
 	glDeleteBuffers(1, &normalbuffer);
 	glDeleteBuffers(1, &orientationbuffer);
 	glDeleteBuffers(1, &positionbuffer);
-	// glDeleteBuffers(1, &directionbuffer);
+	glDeleteBuffers(1, &directionbuffer);
 	glDeleteProgram(programID);
 	glDeleteTextures(1, &texture);
 	glDeleteVertexArrays(1, &vertexArrayID);
@@ -84,12 +82,16 @@ void Mesh::VBO()
 	glBindBuffer(GL_ARRAY_BUFFER, positionbuffer);
 	glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), &positions[0], GL_DYNAMIC_DRAW);
 
+	glGenBuffers(1, &directionbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, directionbuffer);
+	glBufferData(GL_ARRAY_BUFFER, directions.size() * sizeof(glm::vec3), &directions[0], GL_DYNAMIC_DRAW);
+
 	interop_setup();
-	interop_register_buffer(orientationbuffer, positionbuffer);
+	interop_register_buffer(orientationbuffer, positionbuffer, directionbuffer);
 	interop_map();
 }
 
-void Mesh::draw(glm::mat4 VP, float currentTime){			// MVP -> VP
+void Mesh::draw(glm::mat4 VP){			// MVP -> VP
 
 	// Use our shader
 	glUseProgram(programID);
@@ -98,8 +100,6 @@ void Mesh::draw(glm::mat4 VP, float currentTime){			// MVP -> VP
 	// Send our transformation to the currently bound shader,
 	// in the "VP" uniform
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &VP[0][0]);
-	glUniform1f(timeID, currentTime);
-
 	
 	// Bind our texture in Texture Unit 0
 	glActiveTexture(GL_TEXTURE0);
@@ -155,7 +155,7 @@ void Mesh::draw(glm::mat4 VP, float currentTime){			// MVP -> VP
 		(void*)0                          // array buffer offset
 		);
 
-	// 4th, 5th, 6th, 7th attribute buffers : transformations
+	// 4th, 5th, 6th, 7th attribute buffers : orientation
 	glEnableVertexAttribArray(4);
 	glEnableVertexAttribArray(5);
 	glEnableVertexAttribArray(6);

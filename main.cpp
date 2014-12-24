@@ -20,6 +20,7 @@
 #include "controls.h"
 #include "main.h"
 #include "mesh.h"
+#include "box.h"
 #include "shader.h"
 #include "interop.h"
 
@@ -86,10 +87,13 @@ int main( int argc, char *argv[])
 
 	vec3 lightPos = vec3(0, 0, 0);
 
+	BoxMesh box(10.0f, "Shaders/SimpleVertexShader.vertexshader",
+                  "Shaders/SimpleFragmentShader.fragmentshader");
+
 	Mesh fish(num_boids,"Shaders/TransformVertexShader.vertexshader",
                   "Shaders/TextureFragmentShader.fragmentshader");
 	fish.loadMesh("data/models/trout.obj");
-	fish.setColorTexture("data/textures/amethyst.jpg", "myTextureSampler");
+	fish.setColorTexture("data/textures/sapphire.jpg", "myTextureSampler");
 
 	mat4 ViewMatrix = translate(mat4(1.0), vec3(0,0,-2.0f));
 	double lastTime = glfwGetTime();
@@ -108,9 +112,11 @@ int main( int argc, char *argv[])
 		mat4 ProjectionMatrix = getProjectionMatrix();
 		mat4 ViewMatrix = getViewMatrix();
 
-		interop_run(num_boids, currentTime, delta);
+		interop_run(num_boids, delta);
 		mat4 VP = ProjectionMatrix * ViewMatrix;
-		fish.draw(VP, float(currentTime));
+		fish.draw(VP);
+		box.draw(VP);
+
 
 		// Swap buffers
 		glfwSwapBuffers(window);
