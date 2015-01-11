@@ -30,7 +30,7 @@ Mesh::Mesh(unsigned long long n_boids, const char* filenameFragment, const char*
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> fd(-10.0,10.0);
+	std::uniform_real_distribution<float> fd(-8.0,8.0);
 
 	positions.resize(num_boids);
 	orientations.resize(num_boids, glm::mat4(1));
