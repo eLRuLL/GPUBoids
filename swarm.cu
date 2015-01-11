@@ -20,6 +20,13 @@ const float epsilon = 1.0e-4;
 
 // __device__ Functions
 
+__constant__ glm::vec4 plane1;
+__constant__ glm::vec4 plane2;
+__constant__ glm::vec4 plane3;
+__constant__ glm::vec4 plane4;
+__constant__ glm::vec4 plane5;
+__constant__ glm::vec4 plane6;
+
 __device__ int GPU_globalindex() {
         return  blockIdx.z * gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
                 blockIdx.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x +
@@ -109,6 +116,7 @@ __global__ void GPU_Update(glm::mat4 *modelMatrices, glm::vec3 *directions,
         glm::vec3 *updated_directions, glm::vec3 *positions,
         glm::vec3 *raxis, float *angles, int num_boids, float cT) {
         int i = GPU_globalindex();
+        printf("%d\n", 2.0f);
         if(i < num_boids)
         {
 
@@ -169,6 +177,14 @@ void update(glm::mat4 *modelMatrices, glm::vec3 *directions,
         cudaMemcpy(new_positions, positions, v3size, cudaMemcpyHostToDevice);
         cudaMemcpy(new_raxis, raxis, v3size, cudaMemcpyHostToDevice);
         cudaMemcpy(new_angles, angles, fsize, cudaMemcpyHostToDevice);
+
+        glm::vec4 algomas(1,2,3,4);
+        cudaMemcpyToSymbol(plane1, algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+        cudaMemcpyToSymbol(plane2, algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+        cudaMemcpyToSymbol(plane3, algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+        cudaMemcpyToSymbol(plane4, algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+        cudaMemcpyToSymbol(plane5, algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+        cudaMemcpyToSymbol(plane6, algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
 
         dim3 grid(num_boids,1,1);  // Max 2147483647` , 65535, 65535 blocks
         dim3 block(1,1,1);          // Max 1024 threads per block

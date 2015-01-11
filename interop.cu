@@ -10,7 +10,7 @@
 #include <cuda_gl_interop.h>
 #include <iostream>
 #include <vector>
-
+#define CUBE_MAX	5.0f
 #include <stdio.h>
 
 const float kRepulsionZoneRadius = 1.0;
@@ -35,6 +35,13 @@ glm::vec3 *newd_devPtr;
 
 // __device__ Functions
 
+glm::vec4* planes;
+glm::vec4* the_planes;
+// __constant__ glm::vec4 plane2;
+// __constant__ glm::vec4 plane3;
+// __constant__ glm::vec4 plane4;
+// __constant__ glm::vec4 plane5;
+// __constant__ glm::vec4 plane6;
 
 
 __device__ int GPU_globalindex() {
@@ -89,30 +96,6 @@ __device__ glm::vec3 perceived_center(glm::vec3* positions, int* points_indices,
 
 __device__ glm::vec3 stay_in_bounds(glm::vec3* positions, int cur_boid_index, int p=2){
     glm::vec3 new_vec(0,0,0);
-
-    float x_max = 10.0;
-    float y_max = 10.0;
-    float z_max = 10.0;
-
-    float x_min = -10.0;
-    float y_min = -10.0;
-    float z_min = -10.0;
-
-    if(positions[cur_boid_index].x > x_max)
-        new_vec.x -= pow(x_max - positions[cur_boid_index].x, p);
-    if(positions[cur_boid_index].y > y_max)
-        new_vec.y -= pow(y_max - positions[cur_boid_index].y, p);
-    if(positions[cur_boid_index].z > z_max)
-        new_vec.z -= pow(z_max - positions[cur_boid_index].z, p);
-
-    if(positions[cur_boid_index].x < x_min)
-        new_vec.x += pow(x_min - positions[cur_boid_index].x, p);
-    if(positions[cur_boid_index].y < y_min)
-        new_vec.y += pow(y_min - positions[cur_boid_index].y, p);
-    if(positions[cur_boid_index].z < z_min)
-        new_vec.z += pow(z_min - positions[cur_boid_index].z, p);
-
-    return new_vec;
 }
 
 __device__ glm::vec3 limit(glm::vec3 the_vec, float lim){
@@ -147,7 +130,7 @@ __device__ void GPU_Update_Direction(glm::vec3 *directions_output, glm::vec3 *di
     // closest_neighbors(points_indices, n_points, index,num_boids, positions, directions_input, kRepulsionZoneRadius);
     // glm::vec3 sum_vector = resultant(positions, points_indices, n_points, index);
 
-    // if (n_points) 
+    // if (n_points)
     // {
     // new_direction += perceived_center(positions, points_indices, n_points, index) * 1.0f - positions[index];
         // since we have neighbors the repulsion behavior is applied
@@ -186,6 +169,7 @@ __device__ void GPU_Update_Direction(glm::vec3 *directions_output, glm::vec3 *di
             if (n_points) {
                 // since we have neighbors the repulsion behavior is applied
                 new_direction = avoid_collisions(positions, points_indices, n_points, index);
+
             } else {
                 // if there aren't any neighbors in the repulsion zone
                 // we need to explore the orientation zone
@@ -209,26 +193,26 @@ __device__ void GPU_Update_Direction(glm::vec3 *directions_output, glm::vec3 *di
 
 }
 
-__global__ void GPU_Update( glm::mat4 *orient, glm::vec3 *pos, glm::vec3 *dir_input, glm::vec3 *dir_output, int num_boids, float delta) {
+__global__ void GPU_Update( glm::mat4 *orient, glm::vec3 *pos, glm::vec3 *dir_input, glm::vec3 *dir_output, int num_boids, float delta, glm::vec4* planes) {
     // map from threadIdx/BlockIdx to pixel position
     int index = GPU_globalindex();
     // now calculate the value at that position
     GPU_Update_Direction(dir_output, dir_input, pos, index, num_boids);
-
+    printf("%f\n", planes[0].x);
     if(glm::length(dir_output[index]) != 0)
     {
-        glm::vec3 v = glm::cross(glm::vec3(0,0,1),glm::normalize(dir_output[index]));
-        float sine = glm::length(v);
-        if (sine != 0.0)
-        {
-            float cosine = glm::dot(glm::vec3(0,0,1),glm::normalize(dir_output[index]));
-            glm::mat3 v_x = glm::mat3(0.0f,v[2],-v[1],
-                                        -v[2],0.0f,v[0],
-                                        v[1],-v[0],0.0f);
-            glm::mat3 R = glm::mat3(1) + v_x + (v_x)*(v_x)*(1-cosine)/(sine*sine);
-        
-            orient[index] = glm::mat4(R);
-        }
+        // glm::vec3 v = glm::cross(glm::vec3(0,0,1),glm::normalize(dir_output[index]));
+        // float sine = glm::length(v);
+        // if (sine != 0.0)
+        // {
+        //     float cosine = glm::dot(glm::vec3(0,0,1),glm::normalize(dir_output[index]));
+        //     glm::mat3 v_x = glm::mat3(0.0f,v[2],-v[1],
+        //                                 -v[2],0.0f,v[0],
+        //                                 v[1],-v[0],0.0f);
+        //     glm::mat3 R = glm::mat3(1) + v_x + (v_x)*(v_x)*(1-cosine)/(sine*sine);
+        //
+        //     orient[index] = glm::mat4(R);
+        // }
         pos[index] += glm::normalize(dir_output[index])*delta;
     }
 }
@@ -242,6 +226,18 @@ void interop_setup() {
     prop.minor = 0;
     cudaChooseDevice( &dev, &prop );
     cudaGLSetGLDevice( dev );   // dev = 0
+
+    glm::vec4 algomas(1,2,3,4);
+    planes = new glm::vec4[6];
+    planes[0] = glm::vec4(1,2,3,4);
+    //glm::vec4* the_planes = algomas;
+    cudaMemcpy(the_planes, planes, sizeof(glm::vec4)*6, cudaMemcpyHostToDevice);
+    // cudaMemcpyToSymbol(plane1, &algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+    // cudaMemcpyToSymbol(plane2, &algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+    // cudaMemcpyToSymbol(plane3, &algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+    // cudaMemcpyToSymbol(plane4, &algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+    // cudaMemcpyToSymbol(plane5, &algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
+    // cudaMemcpyToSymbol(plane6, &algomas, sizeof(glm::vec4), 0, cudaMemcpyHostToDevice);
 }
 
 void interop_register_buffer(GLuint& o_buffer, GLuint& p_buffer, GLuint& d_buffer){
@@ -270,10 +266,9 @@ void interop_run(int num_boids, float delta) {
 
     cudaMalloc(&newd_devPtr, num_boids * sizeof(glm::vec3));
 
-
     dim3 grids(num_boids,1);
     dim3 threads(1,1);
-    GPU_Update<<<grids,threads>>>( o_devPtr, p_devPtr, d_devPtr, newd_devPtr, num_boids, delta);
+    GPU_Update<<<grids,threads>>>( o_devPtr, p_devPtr, d_devPtr, newd_devPtr, num_boids, delta, the_planes);
     cudaGraphicsUnmapResources( 1, &o_resource, NULL );
     cudaGraphicsUnmapResources( 1, &p_resource, NULL );
     cudaGraphicsUnmapResources( 1, &d_resource, NULL );

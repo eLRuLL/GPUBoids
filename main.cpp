@@ -27,6 +27,8 @@
 using namespace glm;
 using namespace std;
 
+#define CUBE_MAX	5.0f
+
 GLFWwindow* window;
 
 int main( int argc, char *argv[])
@@ -87,7 +89,7 @@ int main( int argc, char *argv[])
 
 	vec3 lightPos = vec3(0, 0, 0);
 
-	BoxMesh box(10.0f, "Shaders/SimpleVertexShader.vertexshader",
+	BoxMesh box(CUBE_MAX*2.0f, "Shaders/SimpleVertexShader.vertexshader",
                   "Shaders/SimpleFragmentShader.fragmentshader");
 
 	Mesh fish(num_boids,"Shaders/TransformVertexShader.vertexshader",
