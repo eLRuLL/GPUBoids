@@ -34,10 +34,11 @@ Mesh::Mesh(unsigned long long n_boids, const char* filenameFragment, const char*
 
 	positions.resize(num_boids);
 	orientations.resize(num_boids, glm::mat4(1));
-	directions.resize(num_boids, glm::vec3(0,0,0.25));
+	directions.resize(num_boids, glm::vec3(0,0,1.0));
 
 	for(unsigned long long i = 0; i<num_boids; i++){
 		positions[i] = glm::vec3(fd(gen),fd(gen),fd(gen));
+		// positions[i] = glm::vec3(0.0,0.0,0.0);
 	}
 }
 
