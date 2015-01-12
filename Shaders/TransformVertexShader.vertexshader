@@ -9,6 +9,7 @@ layout(location = 4) in mat4 orientation_data;
 
 // Output data ; will be interpolated for each fragment.
 out vec2 UV;
+out vec4 newposition;
 
 // Values that stay constant for the whole mesh.
 uniform mat4 VP;
@@ -18,8 +19,9 @@ void main(){
 	// Output position of the vertex, in clip space : MVP * position
 	// gl_Position =  VP * vec4(newposition,1);
 	// newposition.x += sin(newposition.z*2)*0.2;
+	// vec4 newposition = orientation_data * vec4(vertexPosition_modelspace,1) + vec4(position_data,1);
 
-	vec4 newposition = orientation_data * vec4(vertexPosition_modelspace,1) + vec4(position_data,1);
+	newposition = orientation_data * vec4(vertexPosition_modelspace,1) + vec4(position_data,1);
 	gl_Position = VP * ( newposition ) ;
 
 

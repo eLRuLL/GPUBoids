@@ -2,12 +2,16 @@
 
 
 in vec2 UV;
+in vec4 newposition;
 // Ouput data
 out vec4 FragColor;
 
 uniform sampler2D myTextureSampler;
 
+// vec3 color = vec3(newposition);
+vec3 color = vec3(0.3,0.8,0.9);
+
 void main() {	
 
-	FragColor = vec4(texture2D( myTextureSampler, UV ).rgb, 1.0);
+	FragColor = vec4(texture2D( myTextureSampler, UV ).rgb * color, 1.0);
 }
