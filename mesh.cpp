@@ -1,5 +1,5 @@
 #include <iostream>
-#include <random>
+//#include <random>
 
 #include "controls.h"
 #include "mesh.h"
@@ -28,17 +28,18 @@ Mesh::Mesh(unsigned long long n_boids, const char* filenameFragment, const char*
 	// Get a handle for our "LightPosition" uniform
 	glUseProgram(programID);
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> fd(-8.0,8.0);
+        //TODO Reemplazar esto con llamadas a rand()
+        //std::random_device rd;
+        //std::mt19937 gen(rd());
+        //std::uniform_real_distribution<float> fd(-8.0,8.0);
 
 	positions.resize(num_boids);
 	orientations.resize(num_boids, glm::mat4(1));
 	directions.resize(num_boids, glm::vec3(1.0,0.0,0.0));
 
 	for(unsigned long long i = 0; i<num_boids; i++){
-		positions[i] = glm::vec3(fd(gen),fd(gen),fd(gen));
-		// positions[i] = glm::vec3(0.0,0.0,0.0);
+		//positions[i] = glm::vec3(fd(gen),fd(gen),fd(gen));
+                 positions[i] = glm::vec3(0.0,0.0,0.0);
 	}
 }
 

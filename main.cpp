@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <iostream>
-#include <random>
 #include <string>
 #include <vector>
 
@@ -31,7 +30,7 @@ GLFWwindow* window;
 
 int main( int argc, char *argv[])
 {
-	int num_boids = stoull(argv[1]);
+	int num_boids = atoi(argv[1]);
 	const float epsilon = 1.0e-4;
 
 	// Initialise GLFW
@@ -42,10 +41,13 @@ int main( int argc, char *argv[])
 	}
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+        //printf("Supported GLSL version is %s.\n", (char *) glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	// Open a window and create its OpenGL context
 	int width = 1280;	//1280 - 1920
@@ -53,13 +55,13 @@ int main( int argc, char *argv[])
 	window = glfwCreateWindow(width, height,
                         "Fishschool Collective Behavior Simulation",
                         NULL /*glfwGetPrimaryMonitor()*/, NULL);
-	if (window == NULL) {
-		fprintf(stderr, "Failed to open GLFW window."
+        if (window == NULL) {
+                fprintf(stderr, "Failed to open GLFW window."
                         " If you have an Intel GPU, they are not 3.3 compatible."
                         " Try the 2.1 version of the tutorials.\n");
-		glfwTerminate();
-		return -1;
-	}
+                glfwTerminate();
+                return -1;
+        }
 	glfwMakeContextCurrent(window);
 	// glfwSetCursorPos(window, width / 2, height / 2);
 	glfwSwapInterval(1);
@@ -97,6 +99,7 @@ int main( int argc, char *argv[])
 
 	mat4 ViewMatrix = translate(mat4(1.0), vec3(0,0,-2.0f));
 	double lastTime = glfwGetTime();
+        puts("about to start");
 	do
 	{
 		// Clear the screen
@@ -116,7 +119,6 @@ int main( int argc, char *argv[])
 		mat4 VP = ProjectionMatrix * ViewMatrix;
 		fish.draw(VP);
 		box.draw(VP);
-
 
 		// Swap buffers
 		glfwSwapBuffers(window);

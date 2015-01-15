@@ -1,17 +1,21 @@
 #define GL_GLEXT_PROTOTYPES
-#include <GL/glut.h>
+#include <GLUT/glut.h>
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include "helper_cuda.h"
+
+
 #include <cuda.h>
 #include <cuda_gl_interop.h>
-#include <iostream>
 #include <vector>
 
 #include <stdio.h>
+
+#include "neighbors.h"
 
 const float kRepulsionZoneRadius = 0.5;
 const float kOrientationZoneRadius = 4.0;
@@ -33,16 +37,23 @@ glm::vec3 *p_devPtr;
 glm::vec3 *d_devPtr;
 glm::vec3 *newd_devPtr;
 
-// __device__ Functions
+glm::vec3 *sorted_pos;
+glm::vec3 *sorted_dir;
 
+uint *cell_start;
+uint *cell_end;
+uint *boids_hash;
+uint *boids_index;
 
-
-__device__ int GPU_globalindex() {
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int index = x + y * blockDim.x * gridDim.x;
-    return index;
+void init_auxiliary_data(int num_boids) {
+    cudaMalloc((void **) &cell_start, kNumCells * sizeof(uint));
+    cudaMalloc((void **) &cell_end, kNumCells * sizeof(uint));
+    cudaMalloc((void **) &boids_hash, num_boids * sizeof(uint));
+    cudaMalloc((void **) &boids_index, num_boids * sizeof(uint));
+    cudaMalloc((void **) &sorted_pos, num_boids * sizeof(glm::vec3));
+    cudaMalloc((void **) &sorted_dir, num_boids * sizeof(glm::vec3));
 }
+// __device__ Functions
 
 // Returns true iff the point b is inside a's field of view
 __device__ bool is_in_visual_field(glm::vec3 a, glm::vec3 b) {
@@ -149,8 +160,22 @@ __device__ glm::vec3 avoid_collisions(glm::vec3* positions, int* points_indices,
     return new_vec;
 }
 
+#define EXPLORE(RADIUS)   for (int dz = -1; dz <= 1; ++dz) \
+                    for (int dy = -1; dy <= 1; ++dy) \
+                      for (int dx = -1; dx <= 1; ++dx) {\
+                        int3 newCell;\
+                        newCell.x = cell.x + dx;\
+                        newCell.y = cell.y + dy;\
+                        newCell.z = cell.z + dz;\
+                        uint hash = boidPosToHash(newCell);\
+                        if (cell_start[hash] != 0xffffffff) \
+                          for (uint i = cell_start[hash]; i < cell_end[hash]; ++i)\
+                            if (i != index &&\
+                                glm::distance(positions[i], positions[index]) < RADIUS &&\
+                                is_in_visual_field(directions_input[index], positions[i] - positions[index]))
 
-__device__ void GPU_Update_Direction(glm::vec3 *directions_output, glm::vec3 *directions_input, glm::vec3 *positions, int index,int num_boids){
+
+__device__ void GPU_Update_Direction(glm::vec3 *directions_output, glm::vec3 *directions_input, glm::vec3 *positions, int index,int num_boids, uint *cell_start, uint *cell_end){
             // glm::vec3 new_direction = glm::vec3(0,0,0);
             // int n_points = 0;
             // int* points_indices = new int[num_boids];
@@ -186,33 +211,52 @@ __device__ void GPU_Update_Direction(glm::vec3 *directions_output, glm::vec3 *di
             
 
             glm::vec3 sb = stay_in_bounds(positions, index);
-            
-            
-                            glm::vec3 new_direction = directions_input[index];
-            int n_points = 0;
-            int* points_indices = new int[num_boids];
+            int3 cell = boidPos(positions[index]);
 
-            closest_neighbors(points_indices, n_points, index,
-                    num_boids, positions, directions_input, kRepulsionZoneRadius);
+            glm::vec3 new_direction = directions_input[index];
+            int n_points = 0;
+            /*int* points_indices = new int[num_boids];*/
+
+            glm::vec3 new_vec(.0f, .0f, .0f); // resultado de avoid_collisions
+            EXPLORE(kRepulsionZoneRadius) {
+                    ++n_points;
+                    glm::vec3 offset = positions[i] - positions[index];
+                    if (glm::length(offset) > 0)
+                        new_vec -= glm::normalize(offset);
+            }}
+
+            /*closest_neighbors(points_indices, n_points, index,*/
+                    /*num_boids, positions, directions_input, kRepulsionZoneRadius);*/
 
             if (n_points) {
                 // since we have neighbors the repulsion behavior is applied
-                new_direction += avoid_collisions(positions, points_indices, n_points, index);
+                new_direction += new_vec;
+                /*new_direction += avoid_collisions(positions, points_indices, n_points, index);*/
             } else {
                 // if there aren't any neighbors in the repulsion zone
                 // we need to explore the orientation zone
-                closest_neighbors(points_indices, n_points, index, num_boids,
-                        positions, directions_input, kOrientationZoneRadius);
-                glm::vec3 sum_vector = resultant(positions, points_indices, n_points, index);
-                glm::vec3 sum_direction =
-                    resultant_direction(directions_input, points_indices, n_points, index);
+                glm::vec3 sum_vector(.0f, .0f, .0f);
+                glm::vec3 sum_direction = sum_vector;
+                EXPLORE(kOrientationZoneRadius) {
+                    ++n_points;
+                    if (glm::length(positions[i] - positions[index]) > 0)
+                        sum_vector += glm::normalize(positions[i] - positions[index]);
+                    if (glm::length(directions_input[i]) > 0)
+                        sum_direction += glm::normalize(directions_input[i]);
+                }}
+
+                /*closest_neighbors(points_indices, n_points, index, num_boids,*/
+                        /*positions, directions_input, kOrientationZoneRadius);*/
+                /*glm::vec3 sum_vector = resultant(positions, points_indices, n_points, index);*/
+                /*glm::vec3 sum_direction =*/
+                    /*resultant_direction(directions_input, points_indices, n_points, index);*/
                 if (n_points) {
                     new_direction +=
                         sum_vector * ATTRACTION_WEIGHT + sum_direction * ORIENTATION_WEIGHT;
                 }
             }
 
-            delete[] points_indices;
+            /*delete[] points_indices;*/
             if(glm::length(new_direction) > 0)
                 directions_output[index] = glm::normalize(new_direction);
                 else
@@ -226,11 +270,11 @@ __device__ void GPU_Update_Direction(glm::vec3 *directions_output, glm::vec3 *di
 
 }
 
-__global__ void GPU_Update( glm::mat4 *orient, glm::vec3 *pos, glm::vec3 *dir_input, glm::vec3 *dir_output, int num_boids, float delta) {
+__global__ void GPU_Update( glm::mat4 *orient, glm::vec3 *pos, glm::vec3 *dir_input, glm::vec3 *dir_output, int num_boids, float delta, uint *cell_start, uint *cell_end) {
     // map from threadIdx/BlockIdx to pixel position
     int index = GPU_globalindex();
     // now calculate the value at that position
-    GPU_Update_Direction(dir_output, dir_input, pos, index, num_boids);
+    GPU_Update_Direction(dir_output, dir_input, pos, index, num_boids, cell_start, cell_end);
 
     if(glm::length(dir_output[index]) > 0)
     {
@@ -298,24 +342,30 @@ void interop_map() {
     size_t d_size;
     cudaGraphicsMapResources( 1, &d_resource, NULL );
     cudaGraphicsResourceGetMappedPointer( (void**)&d_devPtr,&d_size,d_resource ) ;
-
-
 }
 
 void interop_run(int num_boids, float delta) {
-
     cudaMalloc(&newd_devPtr, num_boids * sizeof(glm::vec3));
-
 
     dim3 grids(num_boids,1);
     dim3 threads(1,1);
-    GPU_Update<<<grids,threads>>>( o_devPtr, p_devPtr, d_devPtr, newd_devPtr, num_boids, delta);
+
+    hashBoids(boids_hash, boids_index, p_devPtr, num_boids);
+    sortBoidsByHash(boids_hash, boids_index, num_boids);
+    reorderDataP(cell_start, cell_end, sorted_pos, sorted_dir,
+            boids_hash, boids_index, p_devPtr, d_devPtr,
+            num_boids);
+
+    cudaMemcpy(p_devPtr, sorted_pos, num_boids * sizeof(glm::vec3), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(d_devPtr, sorted_dir, num_boids * sizeof(glm::vec3), cudaMemcpyDeviceToDevice);
+
+    GPU_Update<<<grids,threads>>>( o_devPtr, p_devPtr, d_devPtr, newd_devPtr, num_boids, delta,
+            cell_start, cell_end);
     cudaGraphicsUnmapResources( 1, &o_resource, NULL );
     cudaGraphicsUnmapResources( 1, &p_resource, NULL );
     cudaGraphicsUnmapResources( 1, &d_resource, NULL );
 
     cudaFree(newd_devPtr);
-
 }
 
 void interop_cleanup(){
