@@ -21,7 +21,7 @@ const float kVisualFieldAngle = 3.14159 * 120.0 / 180.0;
 #define ATTRACTION_WEIGHT 7.0f
 #define ORIENTATION_WEIGHT 10.0f
 
-#define ACCELERATION 2.0f
+#define ACCELERATION 5.0f
 
 // const float epsilon = 1.0e-4;
 
@@ -265,7 +265,7 @@ __global__ void GPU_Update( glm::mat4 *orient, glm::vec3 *pos, glm::vec3 *dir_in
         
             orient[index] = glm::mat4(R);
         }
-        pos[index] += glm::normalize(dir_output[index])*delta;
+        pos[index] += glm::normalize(dir_output[index])*delta*ACCELERATION;
     }
 }
 

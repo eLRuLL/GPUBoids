@@ -34,7 +34,7 @@ Mesh::Mesh(unsigned long long n_boids, const char* filenameFragment, const char*
 
 	positions.resize(num_boids);
 	orientations.resize(num_boids, glm::mat4(1));
-	directions.resize(num_boids, glm::vec3(1.0,0.0,0.0));
+	directions.resize(num_boids, glm::vec3(0.0,0.0,1.0));
 
 	for(unsigned long long i = 0; i<num_boids; i++){
 		positions[i] = glm::vec3(fd(gen),fd(gen),fd(gen));
@@ -55,7 +55,6 @@ Mesh::~Mesh()
 	glDeleteTextures(1, &texture);
 	glDeleteVertexArrays(1, &vertexArrayID);
 	// delete modelMatrix;
-	interop_cleanup();
 }
 
 
@@ -87,9 +86,7 @@ void Mesh::VBO()
 	glBindBuffer(GL_ARRAY_BUFFER, directionbuffer);
 	glBufferData(GL_ARRAY_BUFFER, directions.size() * sizeof(glm::vec3), &directions[0], GL_DYNAMIC_DRAW);
 
-	interop_setup();
 	interop_register_buffer(orientationbuffer, positionbuffer, directionbuffer);
-	interop_map();
 }
 
 void Mesh::draw(glm::mat4 VP){			// MVP -> VP

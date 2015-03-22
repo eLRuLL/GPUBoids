@@ -87,13 +87,19 @@ int main( int argc, char *argv[])
 
 	vec3 lightPos = vec3(0, 0, 0);
 
+	interop_setup();
+
+
 	BoxMesh box(10.0f, "Shaders/SimpleVertexShader.vertexshader",
                   "Shaders/SimpleFragmentShader.fragmentshader");
 
 	Mesh fish(num_boids,"Shaders/TransformVertexShader.vertexshader",
                   "Shaders/TextureFragmentShader.fragmentshader");
 	fish.loadMesh("data/models/trout.obj");
-	fish.setColorTexture("data/textures/amethyst.jpg", "myTextureSampler");
+	fish.setColorTexture("data/textures/scales.jpg", "myTextureSampler");
+
+	interop_map();
+
 
 	mat4 ViewMatrix = translate(mat4(1.0), vec3(0,0,-2.0f));
 	double lastTime = glfwGetTime();
@@ -117,7 +123,6 @@ int main( int argc, char *argv[])
 		fish.draw(VP);
 		box.draw(VP);
 
-
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -128,6 +133,8 @@ int main( int argc, char *argv[])
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
+	interop_cleanup();
+
 
 	return 0;
 }
